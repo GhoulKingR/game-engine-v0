@@ -21,6 +21,7 @@
 #include "renderer.hpp"
 #include "object.hpp"
 #include "shaders.hpp"
+#include "gameview.hpp"
 
 std::pair<std::vector<float>, std::vector<uint32_t>>
 engine::Object::genQuad(float width, float height) {
@@ -83,9 +84,9 @@ engine::Object::genTextures(const std::vector<std::string> &paths) {
     return textures;
 }
 
-engine::Object::Object(const Shaders &shaders, const Renderer &renderer,
+engine::Object::Object(const Shaders &shaders, const GameView &gameview,
                        const std::string &name)
-    : shaders(shaders), renderer(renderer), name(name) {}
+    : shaders(shaders), gameview(gameview), name(name) {}
 
 void engine::Object::loadVertices(const std::vector<float> &vertices,
                                   const std::vector<uint32_t> &indices) {
@@ -125,7 +126,7 @@ engine::Object::~Object() {
 void engine::Object::draw() const {
     shaders.use();
 
-    shaders.setMat4("aspectRatio", renderer.aspectRatio());
+    shaders.setMat4("aspectRatio", gameview.aspectRatio());
 
     auto model = glm::identity<glm::mat4>();
     model = glm::translate(model, glm::vec3(transforms.translate[0],

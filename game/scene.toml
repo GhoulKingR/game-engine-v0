@@ -1,0 +1,12 @@
+[[nodes]]
+name = "Red Bird"
+type = "sprite"
+textures = [
+    "assets/sprites/redbird-upflap.png",
+    "assets/sprites/redbird-midflap.png",
+    "assets/sprites/redbird-downflap.png"
+]
+size = [34, 24]
+translate = [100, 100]
+scale = [1.0, 1.0]
+rotate = 0.0

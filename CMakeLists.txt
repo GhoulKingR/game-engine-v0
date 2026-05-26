@@ -9,6 +9,14 @@ find_package(glm REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(glfw3 3.4 REQUIRED)
 
+include(FetchContent)
+FetchContent_Declare(
+    tomlplusplus
+    GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+    GIT_TAG        v3.4.0
+)
+FetchContent_MakeAvailable(tomlplusplus)
+
 function (add_asset_target TARGET)
     set (multiValue SRC DST)
     cmake_parse_arguments (arg "" "" "${multiValue}" ${ARGN})
@@ -19,10 +27,12 @@ function (add_asset_target TARGET)
                 -E copy_directory
                 "${arg_SRC}" "${ASSET_DIR}"
         DEPENDS ${arg_SRC}
-        COMMENT "Copying asset files")
+        COMMENT "Copying asset files"
+    )
     add_custom_target(
         ${TARGET}
-        DEPENDS ${ASSET_DIR})
+        DEPENDS ${ASSET_DIR}
+    )
 endfunction()
 
 function (add_shader_target TARGET)
@@ -33,7 +43,9 @@ function (add_shader_target TARGET)
         OUTPUT ${SHADERS_OUT}
         COMMAND ${CMAKE_COMMAND}
                 -E make_directory
-                ${SHADERS_OUT})
+                ${SHADERS_OUT}
+        COMMENT "Creating ${SHADERS_OUT} folder"
+    )
     add_custom_command(
         OUTPUT "${SHADERS_OUT}/uber.vert"
         COMMAND ${CMAKE_COMMAND}
@@ -41,7 +53,8 @@ function (add_shader_target TARGET)
                 "${PROJECT_SOURCE_DIR}/${arg_VERTEX}"
                 "${SHADERS_OUT}/uber.vert"
         DEPENDS ${SHADERS_OUT} ${arg_VERTEX}
-        COMMENT "Copying vertex shader from ${arg_VERTEX}")
+        COMMENT "Copying vertex shader from ${arg_VERTEX}"
+    )
     add_custom_command(
         OUTPUT "${SHADERS_OUT}/uber.frag"
         COMMAND ${CMAKE_COMMAND}
@@ -49,76 +62,88 @@ function (add_shader_target TARGET)
                 "${PROJECT_SOURCE_DIR}/${arg_FRAGMENT}"
                 "${SHADERS_OUT}/uber.frag"
         DEPENDS ${SHADERS_OUT} ${arg_FRAGMENT}
-        COMMENT "Copying fragment shader from ${arg_FRAGMENT}")
+        COMMENT "Copying fragment shader from ${arg_FRAGMENT}"
+    )
     add_custom_target(
         ${TARGET}
         DEPENDS "${SHADERS_OUT}/uber.frag"
-                "${SHADERS_OUT}/uber.vert")
+                "${SHADERS_OUT}/uber.vert"
+            )
 endfunction()
 
-function (engine_ui_target TARGET)
-    add_library(${TARGET}
-        # ImGui files
-        src/imgui/imgui.cpp
-        src/imgui/imgui_demo.cpp
-        src/imgui/imgui_draw.cpp
-        src/imgui/imgui_impl_glfw.cpp
-        src/imgui/imgui_impl_opengl3.cpp
-        src/imgui/imgui_tables.cpp
-        src/imgui/imgui_widgets.cpp
-        src/imgui/imgui_tables.cpp
-        src/imgui/imgui_widgets.cpp)
-    target_include_directories(${TARGET} PRIVATE
-        "${PROJECT_SOURCE_DIR}/include")
-    target_link_libraries(${TARGET} PRIVATE
-        OpenGL::GL
-        glfw
-        glm::glm)
+function (copy_game_tree TARGET)
+    cmake_parse_arguments (arg "" "" "SRC" ${ARGN})
+    set (GAME_TREE "${CMAKE_CURRENT_BINARY_DIR}/game")
+    add_custom_command(
+        OUTPUT ${GAME_TREE}
+        COMMAND ${CMAKE_COMMAND}
+                -E copy_directory
+                "${arg_SRC}" "${GAME_TREE}"
+        COMMENT "Copying scene tree"
+    )
+    add_custom_target(
+        ${TARGET}
+        DEPENDS "${GAME_TREE}"
+    )
 endfunction()
 
 add_asset_target(assets
     SRC "${PROJECT_SOURCE_DIR}/game-assets"
-    DST "${CMAKE_CURRENT_BINARY_DIR}")
+    DST "${CMAKE_CURRENT_BINARY_DIR}"
+)
 add_shader_target(shaders
     VERTEX src/shaders/uber.vert
-    FRAGMENT src/shaders/uber.frag)
+    FRAGMENT src/shaders/uber.frag
+)
+copy_game_tree(game_tree
+    SRC "${PROJECT_SOURCE_DIR}/game"
+)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/glad.c
     src/engine/renderer.cpp
     src/engine/shaders.cpp
-    src/engine/object.cpp)
+    src/engine/object.cpp
+    src/engine/gui.cpp
+    src/engine/gameview.cpp
 
-add_dependencies(${PROJECT_NAME} shaders assets)
+    # ImGui files
+    src/imgui/imgui.cpp
+    src/imgui/imgui_demo.cpp
+    src/imgui/imgui_draw.cpp
+    src/imgui/imgui_impl_glfw.cpp
+    src/imgui/imgui_impl_opengl3.cpp
+    src/imgui/imgui_tables.cpp
+    src/imgui/imgui_widgets.cpp
+    src/imgui/imgui_tables.cpp
+    src/imgui/imgui_widgets.cpp
+)
 
-if(ENGINE)
-    engine_ui_target(engineUI)
-    target_compile_options(${PROJECT_NAME} PRIVATE
-        -DENGINE)
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        OpenGL::GL
-        glfw
-        glm::glm
-        engineUI)
-else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        OpenGL::GL
-        glfw
-        glm::glm)
-endif()
+add_dependencies(${PROJECT_NAME} shaders assets game_tree)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    OpenGL::GL
+    glfw
+    glm::glm
+    tomlplusplus::tomlplusplus
+)
 
 if(SANITIZER)
     target_compile_options(${PROJECT_NAME} PRIVATE
         -fsanitize=address
         -g
-        -fno-omit-frame-pointer)
+        -fno-omit-frame-pointer
+    )
     target_link_options(${PROJECT_NAME} PRIVATE
-        -fsanitize=address)
+        -fsanitize=address
+    )
 endif()
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     -Wall
-    -Wextra)
+    -Wextra
+)
 target_include_directories(${PROJECT_NAME} PRIVATE
-    "${PROJECT_SOURCE_DIR}/include")
+    "${PROJECT_SOURCE_DIR}/include"
+)
