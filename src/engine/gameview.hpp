@@ -1,20 +1,15 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include "scene.hpp"
 
 namespace engine {
-class GameView {
-    unsigned int viewTexture = 0;
-    unsigned int FBO = 0;
-    unsigned int RBO = 0;
+using vec2 = std::array<int, 2>;
+namespace gameview {
+void init();
+glm::mat4 calculate_aspect_ratio();
+uint32_t render();
 
-  public:
-    int viewportWidth = 500;
-    int viewportHeight = 500;
-
-    GameView();
-    uint32_t render(const Scene &) const;
-    glm::mat4 aspectRatio() const;
-};
+engine::vec2 getviewport();
+void set_viewport(engine::vec2 val);
+} // namespace gameview
 } // namespace engine

@@ -1,16 +1,11 @@
 #pragma once
 
-#include "node/node.hpp"
+#include <string_view>
 
 namespace engine {
-class Scene {
-    std::unique_ptr<node::Node> parent = nullptr;
-    const char *path = nullptr;
-
-  public:
-    void load(const char *);
-    void draw() const;
-
-    auto getRoot() const { return parent.get(); }
-};
+namespace scene {
+    void load(std::string_view);
+    void renderTree();
+    void draw();
+}
 } // namespace engine

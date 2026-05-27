@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
 
@@ -8,21 +9,11 @@
 #include <GLFW/glfw3.h>
 
 namespace engine {
-class Object;
-class GUI;
-class GameView;
-class Scene;
-class Renderer {
-    static inline int screenWidth = 800;
-    static inline int screenHeight = 600;
-
-    GLFWwindow *window = nullptr;
-
-  public:
-    Renderer();
-    ~Renderer();
-
-    void load(const GUI &, GameView &, const Scene &);
-    auto getWindow() const { return window; }
-};
+using vec2 = std::array<int, 2>;
+namespace renderer {
+GLFWwindow *init_glfw();
+void close_glfw(GLFWwindow *);
+vec2 get_viewport();
+void set_viewport(const vec2 &);
+} // namespace renderer
 } // namespace engine

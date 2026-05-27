@@ -9,7 +9,24 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-engine::GameView::GameView() {
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+static int viewportWidth = 500;
+static int viewportHeight = 500;
+static unsigned int viewTexture = 0;
+static unsigned int FBO = 0;
+static unsigned int RBO = 0;
+
+engine::vec2 engine::gameview::getviewport() {
+    return {viewportWidth, viewportHeight};
+}
+void engine::gameview::set_viewport(engine::vec2 val) {
+    viewportWidth = val[0];
+    viewportHeight = val[1];
+}
+
+void engine::gameview::init() {
     glGenFramebuffers(1, &FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glGenTextures(1, &viewTexture);
@@ -31,7 +48,7 @@ engine::GameView::GameView() {
                               GL_RENDERBUFFER, RBO);
 }
 
-uint32_t engine::GameView::render(const engine::Scene &scene) const {
+uint32_t engine::gameview::render() {
     glViewport(0, 0, viewportWidth, viewportHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glBindRenderbuffer(GL_RENDERBUFFER, RBO);
@@ -39,7 +56,7 @@ uint32_t engine::GameView::render(const engine::Scene &scene) const {
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    scene.draw();
+    scene::draw();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
@@ -47,7 +64,7 @@ uint32_t engine::GameView::render(const engine::Scene &scene) const {
     return viewTexture;
 }
 
-glm::mat4 engine::GameView::aspectRatio() const {
+glm::mat4 engine::gameview::calculate_aspect_ratio() {
     auto pixelSize = 1.0f / glm::vec2(viewportWidth, viewportHeight);
     auto scale = glm::identity<glm::mat4>();
     scale = glm::scale(scale, glm::vec3(pixelSize.x, pixelSize.y, 1.0));
