@@ -2,6 +2,9 @@
 #include "scene.hpp"
 #include <cstdint>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -33,7 +36,7 @@ uint32_t engine::GameView::render(const engine::Scene &scene) const {
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glBindRenderbuffer(GL_RENDERBUFFER, RBO);
 
-    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     scene.draw();
@@ -45,8 +48,7 @@ uint32_t engine::GameView::render(const engine::Scene &scene) const {
 }
 
 glm::mat4 engine::GameView::aspectRatio() const {
-    auto resolution = viewport();
-    auto pixelSize = 1.0f / glm::vec2(resolution.x, resolution.y);
+    auto pixelSize = 1.0f / glm::vec2(viewportWidth, viewportHeight);
     auto scale = glm::identity<glm::mat4>();
     scale = glm::scale(scale, glm::vec3(pixelSize.x, pixelSize.y, 1.0));
     return scale;

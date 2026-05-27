@@ -22,7 +22,7 @@ class Renderer {
     Renderer();
     ~Renderer();
 
-    void load(const GUI &, const GameView &, const Scene &);
+    void load(const GUI &, GameView &, const Scene &);
     auto getWindow() const { return window; }
 };
 } // namespace engine

@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include "gameview.hpp"
 #include "imgui/imgui.h"
 #include "node/node.hpp"
 #include "scene.hpp"
@@ -32,7 +33,7 @@ void engine::GUI::display_children(engine::node::Node *node) {
     }
 }
 
-void engine::GUI::render(ImVec2 gameView, uint32_t gameViewTexture,
+void engine::GUI::render(engine::GameView &gameView, uint32_t gameViewTexture,
                          const Scene &scene) const {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -44,9 +45,13 @@ void engine::GUI::render(ImVec2 gameView, uint32_t gameViewTexture,
     ImGuiWindowFlags gvFlags = 0;
     gvFlags |= ImGuiWindowFlags_NoCollapse;
     ImGui::Begin("Game View", nullptr, gvFlags);
+    auto windowSize = ImGui::GetContentRegionAvail();
+    gameView.viewportWidth = windowSize.x;
+    gameView.viewportHeight = windowSize.y;
     ImGui::Image(
         reinterpret_cast<void *>(static_cast<intptr_t>(gameViewTexture)),
-        gameView, ImVec2(0, 1), ImVec2(1, 0));
+        ImVec2(gameView.viewportWidth, gameView.viewportHeight), ImVec2(0, 1),
+        ImVec2(1, 0));
     ImGui::End();
 
     // scene tree

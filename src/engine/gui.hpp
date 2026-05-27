@@ -1,4 +1,5 @@
 #pragma once
+#include "gameview.hpp"
 #include "node/node.hpp"
 #include "renderer.hpp"
 #include "scene.hpp"
@@ -15,6 +16,6 @@ class GUI {
   public:
     GUI(const Renderer &renderer);
     ~GUI();
-    void render(ImVec2, uint32_t, const Scene &) const;
+    void render(GameView&, uint32_t, const Scene &) const;
 };
 } // namespace engine
