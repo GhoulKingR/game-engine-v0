@@ -1,5 +1,7 @@
 #pragma once
+#include "node/node.hpp"
 #include "renderer.hpp"
+#include "scene.hpp"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
@@ -7,12 +9,12 @@
 
 namespace engine {
 class GUI {
-    const Renderer &renderer;
+    static void display_children(node::Node *node);
+    node::Node *selectedComponent = nullptr;
 
   public:
     GUI(const Renderer &renderer);
     ~GUI();
-    void render(ImVec2, uint32_t,
-                   const std::vector<std::reference_wrapper<Object>> &) const;
+    void render(ImVec2, uint32_t, const Scene &) const;
 };
 } // namespace engine

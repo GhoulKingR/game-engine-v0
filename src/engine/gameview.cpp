@@ -1,7 +1,6 @@
 #include "gameview.hpp"
+#include "scene.hpp"
 #include <cstdint>
-#include <functional>
-#include <initializer_list>
 
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
@@ -29,12 +28,7 @@ engine::GameView::GameView() {
                               GL_RENDERBUFFER, RBO);
 }
 
-void engine::GameView::load(
-    const std::initializer_list<std::reference_wrapper<Object>> &&objects) {
-    this->objects = objects;
-}
-
-uint32_t engine::GameView::render() const {
+uint32_t engine::GameView::render(const engine::Scene &scene) const {
     glViewport(0, 0, viewportWidth, viewportHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glBindRenderbuffer(GL_RENDERBUFFER, RBO);
@@ -42,9 +36,7 @@ uint32_t engine::GameView::render() const {
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    for (const auto obj : objects) {
-        obj.get().draw();
-    }
+    scene.draw();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);

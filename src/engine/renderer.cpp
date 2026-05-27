@@ -2,6 +2,7 @@
 #include "gameview.hpp"
 #include "gui.hpp"
 #include "object.hpp"
+#include "scene.hpp"
 
 #include <stdexcept>
 #include <cstdlib>
@@ -30,7 +31,7 @@ engine::Renderer::Renderer() {
 
     window = glfwCreateWindow(screenWidth, screenHeight, "GL engine", nullptr,
                               nullptr);
-    if (window == NULL) {
+    if (window == nullptr) {
         throw std::runtime_error("Failed to initialize GLFW window");
     }
     glfwMakeContextCurrent(window);
@@ -53,9 +54,9 @@ engine::Renderer::~Renderer() {
 }
 
 void engine::Renderer::load(
-    const engine::GUI &gui, const engine::GameView &gv) {
+    const engine::GUI &gui, const engine::GameView &gv, const engine::Scene &scene) {
     while (!glfwWindowShouldClose(window)) {
-        auto gvTexture = gv.render();
+        auto gvTexture = gv.render(scene);
 
         int width, height;
         glfwGetFramebufferSize(window, &width, &height);
@@ -63,10 +64,8 @@ void engine::Renderer::load(
         glClearColor(0.1, 0.1, 0.1, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        gui.render(gv.viewport(), gvTexture, gv.getObjects());
+        gui.render(gv.viewport(), gvTexture, scene);
 
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwPollEvents();
         glfwSwapBuffers(window);
     }

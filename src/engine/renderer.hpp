@@ -11,6 +11,7 @@ namespace engine {
 class Object;
 class GUI;
 class GameView;
+class Scene;
 class Renderer {
     static inline int screenWidth = 800;
     static inline int screenHeight = 600;
@@ -21,7 +22,7 @@ class Renderer {
     Renderer();
     ~Renderer();
 
-    void load(const GUI &, const GameView &gv);
+    void load(const GUI &, const GameView &, const Scene &);
     auto getWindow() const { return window; }
 };
 } // namespace engine

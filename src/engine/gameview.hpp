@@ -2,9 +2,7 @@
 
 #include "imgui/imgui.h"
 #include "object.hpp"
-#include <functional>
-#include <initializer_list>
-#include <vector>
+#include "scene.hpp"
 
 namespace engine {
 class GameView {
@@ -15,15 +13,11 @@ class GameView {
     unsigned int FBO = 0;
     unsigned int RBO = 0;
 
-    std::vector<std::reference_wrapper<Object>> objects;
-
   public:
     GameView();
-    void load(const std::initializer_list<std::reference_wrapper<Object>> &&);
-    uint32_t render() const;
+    uint32_t render(const Scene &) const;
     glm::mat4 aspectRatio() const;
 
     auto viewport() const { return ImVec2(viewportWidth, viewportHeight); }
-    const auto &getObjects() const { return objects; }
 };
 } // namespace engine

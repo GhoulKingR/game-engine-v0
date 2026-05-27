@@ -1,6 +1,7 @@
 #include "engine/gameview.hpp"
 #include "engine/gui.hpp"
 #include "engine/renderer.hpp"
+#include "engine/scene.hpp"
 #include "engine/shaders.hpp"
 
 #include <cstdio>
@@ -19,6 +20,9 @@ int main() {
         engine::Renderer renderer;
         engine::Shaders uberShaders("shaders/uber.vert", "shaders/uber.frag");
         engine::GUI gui(renderer);
+
+        engine::Scene scene;
+        scene.load("game/scene.toml");
         engine::GameView gameview;
 
         // init
@@ -29,7 +33,7 @@ int main() {
         // auto tbl = toml::parse_file("game/scene.toml");
         // std::cout << "Table look\n" << tbl << std::endl;
 
-        renderer.load(gui, gameview);
+        renderer.load(gui, gameview, scene);
     } catch (const std::runtime_error &err) {
         std::println(stderr, "Error :: {}", err.what());
         return EXIT_FAILURE;

@@ -71,21 +71,21 @@ function (add_shader_target TARGET)
             )
 endfunction()
 
-function (copy_game_tree TARGET)
-    cmake_parse_arguments (arg "" "" "SRC" ${ARGN})
-    set (GAME_TREE "${CMAKE_CURRENT_BINARY_DIR}/game")
-    add_custom_command(
-        OUTPUT ${GAME_TREE}
-        COMMAND ${CMAKE_COMMAND}
-                -E copy_directory
-                "${arg_SRC}" "${GAME_TREE}"
-        COMMENT "Copying scene tree"
-    )
-    add_custom_target(
-        ${TARGET}
-        DEPENDS "${GAME_TREE}"
-    )
-endfunction()
+# function (copy_game_tree TARGET)
+#     cmake_parse_arguments (arg "" "" "SRC" ${ARGN})
+#     set (GAME_TREE "${CMAKE_CURRENT_BINARY_DIR}/game")
+#     add_custom_command(
+#         OUTPUT ${GAME_TREE}
+#         COMMAND ${CMAKE_COMMAND}
+#                 -E copy_directory
+#                 "${arg_SRC}" "${GAME_TREE}"
+#         COMMENT "Copying scene tree"
+#     )
+#     add_custom_target(
+#         ${TARGET}
+#         DEPENDS "${GAME_TREE}"
+#     )
+# endfunction()
 
 add_asset_target(assets
     SRC "${PROJECT_SOURCE_DIR}/game-assets"
@@ -94,9 +94,6 @@ add_asset_target(assets
 add_shader_target(shaders
     VERTEX src/shaders/uber.vert
     FRAGMENT src/shaders/uber.frag
-)
-copy_game_tree(game_tree
-    SRC "${PROJECT_SOURCE_DIR}/game"
 )
 
 add_executable(${PROJECT_NAME}
@@ -107,6 +104,8 @@ add_executable(${PROJECT_NAME}
     src/engine/object.cpp
     src/engine/gui.cpp
     src/engine/gameview.cpp
+    src/engine/scene.cpp
+    src/engine/node/node.cpp
 
     # ImGui files
     src/imgui/imgui.cpp
@@ -120,13 +119,14 @@ add_executable(${PROJECT_NAME}
     src/imgui/imgui_widgets.cpp
 )
 
-add_dependencies(${PROJECT_NAME} shaders assets game_tree)
+add_dependencies(${PROJECT_NAME} shaders assets)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     OpenGL::GL
     glfw
     glm::glm
     tomlplusplus::tomlplusplus
+    ${CMAKE_DL_LIBS}
 )
 
 if(SANITIZER)
@@ -134,6 +134,7 @@ if(SANITIZER)
         -fsanitize=address
         -g
         -fno-omit-frame-pointer
+        -O0
     )
     target_link_options(${PROJECT_NAME} PRIVATE
         -fsanitize=address
