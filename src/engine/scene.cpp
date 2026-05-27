@@ -5,14 +5,21 @@
 #include <format>
 #include <map>
 #include <memory>
+#include <optional>
 #include <stdexcept>
-
 #include <string>
+#include <string_view>
 #include <toml++/impl/parse_error.hpp>
 #include <toml++/impl/table.hpp>
 #include <toml++/toml.hpp>
 #include <utility>
 #include <vector>
+
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+
+struct Entity{};
+std::vector<Entity> entities;
 
 static auto getNode(const std::string &name) {
     if (name == "Node")
@@ -61,25 +68,43 @@ static auto constructTree(toml::table &tbl) {
     return getTree(nodes, relationships, 0);
 }
 
-void engine::Scene::load(const char *path) {
-    if (path == nullptr) {
-        throw std::runtime_error("Scene load path is empty");
-    }
+static std::optional<std::string> loadedScene = std::nullopt;
+static std::unique_ptr<engine::node::Node> root = nullptr;
 
-    if (this->path == nullptr) {
-        this->path = path;
-    }
+void engine::scene::load(std::string_view path) {
+    loadedScene = path;
 
     try {
-        auto tbl = toml::parse_file(path);
-        parent = constructTree(tbl);
+        auto tbl = toml::parse_file(loadedScene->c_str());
+        root = constructTree(tbl);
     } catch (const toml::parse_error &err) {
         throw std::runtime_error(err);
     }
 }
 
-void engine::Scene::draw() const {
-    if (parent != nullptr) {
-        parent->draw();
+void engine::scene::draw() {
+    if (root != nullptr) {
+        root->draw();
     }
+}
+
+static void renderItem(engine::node::Node *node) {
+    if (ImGui::TreeNode(node->name.c_str())) {
+        const auto &children = node->children;
+        if (children.size() > 0) {
+            for (const auto &child : children) {
+                renderItem(child.get());
+            }
+        }
+        ImGui::TreePop();
+    }
+}
+
+// renders tree in the gui
+void engine::scene::renderTree() {
+    ImGui::Begin("Scene Tree");
+    if (root != nullptr) {
+        renderItem(root.get());
+    }
+    ImGui::End();
 }

@@ -1,39 +1,31 @@
 #include "gui.hpp"
 #include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
 #include "node/node.hpp"
+#include "renderer.hpp"
 #include "scene.hpp"
 
 #include <cstdint>
 
-engine::GUI::GUI(const engine::Renderer &renderer) {
+static engine::node::Node *selectedComponent = nullptr;
+
+void engine::gui::init(GLFWwindow *window) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     auto &io = ImGui::GetIO();
     (void)io;
-    ImGui_ImplGlfw_InitForOpenGL(renderer.getWindow(), true);
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
 }
 
-engine::GUI::~GUI() {
+void engine::gui::close() {
     ImGui_ImplGlfw_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui::DestroyContext();
 }
 
-void engine::GUI::display_children(engine::node::Node *node) {
-    if (ImGui::TreeNode(node->name.c_str())) {
-        const auto &children = node->children;
-        if (children.size() > 0) {
-            for (const auto &child : children) {
-                display_children(child.get());
-            }
-        }
-        ImGui::TreePop();
-    }
-}
 
-void engine::GUI::render(ImVec2 gameView, uint32_t gameViewTexture,
-                         const Scene &scene) const {
+void engine::gui::render(uint32_t gameViewTexture) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -44,18 +36,14 @@ void engine::GUI::render(ImVec2 gameView, uint32_t gameViewTexture,
     ImGuiWindowFlags gvFlags = 0;
     gvFlags |= ImGuiWindowFlags_NoCollapse;
     ImGui::Begin("Game View", nullptr, gvFlags);
+    auto gameView = renderer::get_viewport();
     ImGui::Image(
         reinterpret_cast<void *>(static_cast<intptr_t>(gameViewTexture)),
-        gameView, ImVec2(0, 1), ImVec2(1, 0));
+        ImVec2(gameView[0], gameView[1]), ImVec2(0, 1), ImVec2(1, 0));
     ImGui::End();
 
     // scene tree
-    ImGui::Begin("Scene Tree");
-    auto root = scene.getRoot();
-    if (root != nullptr) {
-        display_children(root);
-    }
-    ImGui::End();
+    scene::renderTree();
 
     if (selectedComponent != nullptr) {
         // auto &transforms = obj.transforms;

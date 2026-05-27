@@ -1,9 +1,4 @@
 #include "renderer.hpp"
-#include "gameview.hpp"
-#include "gui.hpp"
-#include "object.hpp"
-#include "scene.hpp"
-
 #include <stdexcept>
 #include <cstdlib>
 #include <print>
@@ -19,7 +14,10 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/component_wise.hpp>
 
-engine::Renderer::Renderer() {
+static int screenWidth = 800;
+static int screenHeight = 600;
+
+GLFWwindow *engine::renderer::init_glfw() {
     glfwSetErrorCallback([](int error, const auto desc) {
         std::println(stderr, "Error ({}): {}", error, desc);
     });
@@ -29,8 +27,8 @@ engine::Renderer::Renderer() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-    window = glfwCreateWindow(screenWidth, screenHeight, "GL engine", nullptr,
-                              nullptr);
+    auto window = glfwCreateWindow(screenWidth, screenHeight, "GL engine",
+                                   nullptr, nullptr);
     if (window == nullptr) {
         throw std::runtime_error("Failed to initialize GLFW window");
     }
@@ -46,28 +44,19 @@ engine::Renderer::Renderer() {
             screenWidth = width;
             screenHeight = height;
         });
+
+    return window;
 }
 
-engine::Renderer::~Renderer() {
+void engine::renderer::close_glfw(GLFWwindow *window) {
     glfwDestroyWindow(window);
     glfwTerminate();
 }
 
-void engine::Renderer::load(
-    const engine::GUI &gui, const engine::GameView &gv, const engine::Scene &scene) {
-    while (!glfwWindowShouldClose(window)) {
-        auto gvTexture = gv.render(scene);
-
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-        glViewport(0, 0, width, height);
-        glClearColor(0.1, 0.1, 0.1, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        gui.render(gv.viewport(), gvTexture, scene);
-
-        glfwPollEvents();
-        glfwSwapBuffers(window);
-    }
+engine::vec2 engine::renderer::get_viewport() {
+    return {screenWidth, screenHeight};
 }
-
+void engine::renderer::set_viewport(const engine::vec2 &val) {
+    screenWidth = val[0];
+    screenHeight = val[1];
+}
