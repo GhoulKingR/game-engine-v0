@@ -1,0 +1,28 @@
+[[objects]]
+name = "Background"
+type = "Sprite"
+textures = [
+    "assets/sprites/background-day.png",
+    "assets/sprites/background-night.png"
+]
+current_texture = 0
+size = [288, 512]
+
+[[objects]]
+name = "Red Bird"
+type = "Sprite"
+textures = [
+    "assets/sprites/redbird-upflap.png",
+    "assets/sprites/redbird-midflap.png",
+    "assets/sprites/redbird-downflap.png"
+]
+current_texture = 0
+size = [34, 24]
+translate = [0, 0]
+scale = [1.0, 1.0]
+rotate = 0.0
+
+[[objects]]
+name = "Second node"
+type = "Camera"
+size = [300, 500]

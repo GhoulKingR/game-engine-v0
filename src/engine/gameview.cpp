@@ -16,13 +16,16 @@ static int viewportWidth = 500;
 static int viewportHeight = 500;
 static unsigned int viewTexture = 0;
 static unsigned int FBO = 0;
-static unsigned int RBO = 0;
+static unsigned int RBO1 = 0;
+static unsigned int RBO2 = 0;
+static unsigned int multisampledFBO = 0;
 
 engine::vec2i engine::gameview::getviewport() {
     return {viewportWidth, viewportHeight};
 }
 
 static void constructRenderTexture() {
+    // generate regular frame buffer object for rendering to texture
     glGenFramebuffers(1, &FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glGenTextures(1, &viewTexture);
@@ -36,17 +39,34 @@ static void constructRenderTexture() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                            viewTexture, 0);
 
-    glGenRenderbuffers(1, &RBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, RBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, viewportWidth,
-                          viewportHeight);
+    // generate multisample frame buffer object to render to
+    glGenFramebuffers(1, &multisampledFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, multisampledFBO);
+
+    // color buffer
+    glGenRenderbuffers(1, &RBO1);
+    glBindRenderbuffer(GL_RENDERBUFFER, RBO1);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_RGB, viewportWidth,
+                                     viewportHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                              GL_RENDERBUFFER, RBO1);
+
+    // depth and stencil buffer
+    glGenRenderbuffers(1, &RBO2);
+    glBindRenderbuffer(GL_RENDERBUFFER, RBO2);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8,
+                                     viewportWidth, viewportHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                              GL_RENDERBUFFER, RBO);
+                              GL_RENDERBUFFER, RBO2);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
 void engine::gameview::cleanup() {
     glDeleteFramebuffers(1, &FBO);
-    glDeleteRenderbuffers(1, &RBO);
+    glDeleteFramebuffers(1, &multisampledFBO);
+    glDeleteRenderbuffers(1, &RBO1);
+    glDeleteRenderbuffers(1, &RBO2);
     glDeleteTextures(1, &viewTexture);
 }
 
@@ -64,17 +84,19 @@ bool engine::gameview::is_preview() { return true; }
 
 uint32_t engine::gameview::render() {
     glViewport(0, 0, viewportWidth, viewportHeight);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, RBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, multisampledFBO);
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     scene::draw();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, multisampledFBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);
+    glBlitFramebuffer(0, 0, viewportWidth, viewportHeight, 0, 0, viewportWidth,
+                      viewportHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     return viewTexture;
 }
 
