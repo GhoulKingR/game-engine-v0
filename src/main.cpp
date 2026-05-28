@@ -2,6 +2,7 @@
 #include "engine/gui.hpp"
 #include "engine/renderer.hpp"
 #include "engine/scene.hpp"
+#include "engine/shaders.hpp"
 
 #include <cstdlib>
 
@@ -14,8 +15,9 @@
 int main() {
     auto window = engine::renderer::init_glfw();
     engine::gui::init(window);
+    engine::shader::init();
     engine::gameview::init();
-    engine::scene::load("game/scene.toml");
+    engine::scene::load("../game/scene.toml");
 
     while (!glfwWindowShouldClose(window)) {
         auto gvTexture = engine::gameview::render();
@@ -32,30 +34,9 @@ int main() {
         glfwSwapBuffers(window);
     }
 
-
-
-    // try {
-    //     engine::Shaders uberShaders("shaders/uber.vert", "shaders/uber.frag");
-    //     engine::GUI gui(renderer);
-    //
-    //     engine::Scene scene;
-    //     scene.load("game/scene.toml");
-    //     engine::GameView gameview;
-    //
-    //     // init
-    //     // engine::Object test(uberShaders, renderer, "Bird test", 1, 1,
-    //     //                     "assets/sprites/yellowbird-midflap.png");
-    //     // Bird bird(uberShaders, renderer, "Main bird", Bird::Red);
-    //
-    //     // auto tbl = toml::parse_file("game/scene.toml");
-    //     // std::cout << "Table look\n" << tbl << std::endl;
-    //
-    //     renderer.load(gui, gameview, scene);
-    // } catch (const std::runtime_error &err) {
-    //     std::println(stderr, "Error :: {}", err.what());
-    //     return EXIT_FAILURE;
-    // }
-
+    engine::gui::close();
+    engine::shader::cleanup();
+    engine::gameview::cleanup();
     engine::renderer::close_glfw(window);
     return EXIT_SUCCESS;
 }

@@ -101,11 +101,10 @@ add_executable(${PROJECT_NAME}
     src/glad.c
     src/engine/renderer.cpp
     src/engine/shaders.cpp
-    # src/engine/object.cpp
     src/engine/gui.cpp
     src/engine/gameview.cpp
     src/engine/scene.cpp
-    src/engine/node/node.cpp
+    src/engine/objects/object.cpp
 
     # ImGui files
     src/imgui/imgui.cpp

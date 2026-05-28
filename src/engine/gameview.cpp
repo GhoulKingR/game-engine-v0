@@ -18,15 +18,11 @@ static unsigned int viewTexture = 0;
 static unsigned int FBO = 0;
 static unsigned int RBO = 0;
 
-engine::vec2 engine::gameview::getviewport() {
+engine::vec2i engine::gameview::getviewport() {
     return {viewportWidth, viewportHeight};
 }
-void engine::gameview::set_viewport(engine::vec2 val) {
-    viewportWidth = val[0];
-    viewportHeight = val[1];
-}
 
-void engine::gameview::init() {
+static void constructRenderTexture() {
     glGenFramebuffers(1, &FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glGenTextures(1, &viewTexture);
@@ -48,12 +44,30 @@ void engine::gameview::init() {
                               GL_RENDERBUFFER, RBO);
 }
 
+void engine::gameview::cleanup() {
+    glDeleteFramebuffers(1, &FBO);
+    glDeleteRenderbuffers(1, &RBO);
+    glDeleteTextures(1, &viewTexture);
+}
+
+void engine::gameview::set_viewport(engine::vec2i val) {
+    if (viewportWidth != val[0] || viewportHeight != val[1]) {
+        viewportWidth = val[0];
+        viewportHeight = val[1];
+        cleanup();
+        constructRenderTexture();
+    }
+}
+
+void engine::gameview::init() { constructRenderTexture(); }
+bool engine::gameview::is_preview() { return true; }
+
 uint32_t engine::gameview::render() {
     glViewport(0, 0, viewportWidth, viewportHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glBindRenderbuffer(GL_RENDERBUFFER, RBO);
 
-    glClearColor(1.0, 1.0, 1.0, 1.0);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     scene::draw();

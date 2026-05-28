@@ -3,13 +3,15 @@
 #include <glm/glm.hpp>
 
 namespace engine {
-using vec2 = std::array<int, 2>;
+using vec2i = std::array<int, 2>;
 namespace gameview {
 void init();
+void cleanup();
 glm::mat4 calculate_aspect_ratio();
 uint32_t render();
+bool is_preview();
 
-engine::vec2 getviewport();
-void set_viewport(engine::vec2 val);
+engine::vec2i getviewport();
+void set_viewport(engine::vec2i val);
 } // namespace gameview
 } // namespace engine

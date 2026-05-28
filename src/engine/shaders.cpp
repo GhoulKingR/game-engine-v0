@@ -1,3 +1,5 @@
+#include <cstdint>
+#include <vector>
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -9,15 +11,17 @@
 #include <sstream>
 #include <stdexcept>
 
-auto engine::Shaders::getSource(const std::string &path) {
+static auto getSource(const std::string &path) {
     std::ifstream inputFile(path);
     std::stringstream buffer;
     buffer << inputFile.rdbuf();
     return buffer.str();
 }
 
-engine::Shaders::Shaders(const std::string &vsource,
-                         const std::string &fsource) {
+static std::vector<uint32_t> shaders;
+
+static uint32_t loadShader(const std::string &vsource,
+                           const std::string &fsource) {
     int success;
     char infoLog[512];
 
@@ -46,7 +50,7 @@ engine::Shaders::Shaders(const std::string &vsource,
         throw std::runtime_error(std::format("FRAGMENT SHADER :: {}", infoLog));
     }
 
-    shaderProgram = glCreateProgram();
+    auto shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
@@ -61,14 +65,38 @@ engine::Shaders::Shaders(const std::string &vsource,
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+    return shaderProgram;
 }
 
-engine::Shaders::~Shaders() { glDeleteProgram(shaderProgram); }
+static uint32_t defaultShader = 0;
+void engine::shader::init() {
+    defaultShader = loadShader("shaders/uber.vert", "shaders/uber.frag");
+    shaders.push_back(defaultShader);
+}
 
-void engine::Shaders::use() const { glUseProgram(shaderProgram); }
+uint32_t engine::shader::default_shader() { return defaultShader; }
 
-void engine::Shaders::setMat4(const std::string &name,
-                              const glm::mat4 &data) const {
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, name.c_str()), 1,
-                       GL_FALSE, glm::value_ptr(data));
+void engine::shader::cleanup() {
+    for (auto &program : shaders) {
+        glDeleteProgram(program);
+    }
+}
+
+void engine::shader::use(uint32_t program) { glUseProgram(program); }
+
+void engine::shader::setMat4(uint32_t program, const std::string &name,
+                             const glm::mat4 &data) {
+    glUniformMatrix4fv(glGetUniformLocation(program, name.c_str()), 1, GL_FALSE,
+                       glm::value_ptr(data));
+}
+
+void engine::shader::setInt(uint32_t program, const std::string &name,
+                            int data) {
+    glUniform1i(glGetUniformLocation(program, name.c_str()), data);
+}
+
+void engine::shader::setVec3(uint32_t program, const std::string &name,
+                             const glm::vec3 &data) {
+    glUniform3f(glGetUniformLocation(program, name.c_str()), data.x, data.y,
+                data.z);
 }
