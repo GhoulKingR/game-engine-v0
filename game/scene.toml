@@ -25,4 +25,4 @@ rotate = 0.0
 [[objects]]
 name = "Second node"
 type = "Camera"
-size = [300, 500]
+size = [288, 512]

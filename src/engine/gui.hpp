@@ -12,6 +12,6 @@ namespace engine {
 namespace gui {
 void init(GLFWwindow *);
 void close();
-void render(uint32_t);
+void render();
 } // namespace gui
 } // namespace engine

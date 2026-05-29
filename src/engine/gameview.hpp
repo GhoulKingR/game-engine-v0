@@ -4,11 +4,13 @@
 
 namespace engine {
 using vec2i = std::array<int, 2>;
+
 namespace gameview {
 void init();
 void cleanup();
 glm::mat4 calculate_aspect_ratio();
-uint32_t render();
+void render();
+void renderGUI();
 bool is_preview();
 
 engine::vec2i getviewport();

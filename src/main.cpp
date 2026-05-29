@@ -20,15 +20,8 @@ int main() {
     engine::scene::load("../game/scene.toml");
 
     while (!glfwWindowShouldClose(window)) {
-        auto gvTexture = engine::gameview::render();
-
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-        glViewport(0, 0, width, height);
-        glClearColor(0.1, 0.1, 0.1, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        engine::gui::render(gvTexture);
+        engine::gameview::render();
+        engine::gui::render();
 
         glfwPollEvents();
         glfwSwapBuffers(window);

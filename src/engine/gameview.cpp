@@ -1,6 +1,6 @@
 #include "gameview.hpp"
 #include "scene.hpp"
-#include <cstdint>
+#include <imgui/imgui.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -82,7 +82,7 @@ void engine::gameview::set_viewport(engine::vec2i val) {
 void engine::gameview::init() { constructRenderTexture(); }
 bool engine::gameview::is_preview() { return true; }
 
-uint32_t engine::gameview::render() {
+void engine::gameview::render() {
     glViewport(0, 0, viewportWidth, viewportHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, multisampledFBO);
 
@@ -97,7 +97,23 @@ uint32_t engine::gameview::render() {
                       viewportHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    return viewTexture;
+}
+
+void engine::gameview::renderGUI() {
+    // gui
+    ImGuiWindowFlags gvFlags = 0;
+    gvFlags |= ImGuiWindowFlags_NoCollapse;
+
+    ImGui::Begin("Game View", nullptr, gvFlags);
+
+    auto windowSize = ImGui::GetContentRegionAvail();
+    engine::gameview::set_viewport(
+        {static_cast<int>(windowSize.x), static_cast<int>(windowSize.y)});
+    ImGui::Image(
+        reinterpret_cast<void *>(static_cast<intptr_t>(viewTexture)),
+        windowSize, ImVec2(0, 1), ImVec2(1, 0));
+
+    ImGui::End();
 }
 
 glm::mat4 engine::gameview::calculate_aspect_ratio() {
@@ -106,3 +122,4 @@ glm::mat4 engine::gameview::calculate_aspect_ratio() {
     scale = glm::scale(scale, glm::vec3(pixelSize.x, pixelSize.y, 1.0));
     return scale;
 }
+
