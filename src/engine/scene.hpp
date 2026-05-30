@@ -1,11 +1,16 @@
 #pragma once
 
-#include <string_view>
+#include <filesystem>
 
 namespace engine {
+namespace project {
 namespace scene {
-    void load(std::string_view);
-    void renderTree();
-    void draw();
-}
+
+void load(const std::filesystem::path &);
+void unload();
+void renderTree();
+void draw();
+
+} // namespace scene
+} // namespace project
 } // namespace engine

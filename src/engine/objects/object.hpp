@@ -21,7 +21,7 @@ struct Object {
     virtual std::string type() { return "Object"; }
     virtual void draw() {}
     virtual ~Object() {}
-    virtual void inspector();
+    virtual void inspector(bool show_title = true);
     Object(toml::table *tbl);
 };
 
@@ -29,7 +29,8 @@ struct Sprite : public Object {
     virtual std::string type() override { return "Sprite"; }
     Sprite(toml::table *tbl, std::filesystem::path &scenePath);
     virtual void draw() override;
-    virtual void inspector() override;
+    virtual void inspector(bool show_title = true) override;
+    ~Sprite();
 
   private:
     uint32_t VBO = 0, EBO = 0, VAO = 0, indexCount = 0;
@@ -43,7 +44,8 @@ struct Camera : public Object {
     Camera(toml::table *tbl);
     virtual std::string type() override { return "Camera"; }
     virtual void draw() override;
-    virtual void inspector() override;
+    virtual void inspector(bool show_title = true) override;
+    ~Camera();
 
   private:
     uint32_t previewVBO = 0, previewEBO = 0, previewVAO = 0, indexCount = 0;

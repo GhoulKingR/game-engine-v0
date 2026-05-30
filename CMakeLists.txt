@@ -7,7 +7,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(glm REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(glfw3 3.4 REQUIRED)
+find_package(SDL3 CONFIG REQUIRED)
+# find_package(glfw3 3.4 REQUIRED)
+
+add_subdirectory("${PROJECT_SOURCE_DIR}/nativefiledialog-extended")
 
 include(FetchContent)
 FetchContent_Declare(
@@ -71,22 +74,6 @@ function (add_shader_target TARGET)
             )
 endfunction()
 
-# function (copy_game_tree TARGET)
-#     cmake_parse_arguments (arg "" "" "SRC" ${ARGN})
-#     set (GAME_TREE "${CMAKE_CURRENT_BINARY_DIR}/game")
-#     add_custom_command(
-#         OUTPUT ${GAME_TREE}
-#         COMMAND ${CMAKE_COMMAND}
-#                 -E copy_directory
-#                 "${arg_SRC}" "${GAME_TREE}"
-#         COMMENT "Copying scene tree"
-#     )
-#     add_custom_target(
-#         ${TARGET}
-#         DEPENDS "${GAME_TREE}"
-#     )
-# endfunction()
-
 add_asset_target(assets
     SRC "${PROJECT_SOURCE_DIR}/game-assets"
     DST "${CMAKE_CURRENT_BINARY_DIR}"
@@ -104,13 +91,14 @@ add_executable(${PROJECT_NAME}
     src/engine/gui.cpp
     src/engine/gameview.cpp
     src/engine/scene.cpp
+    src/engine/project.cpp
     src/engine/objects/object.cpp
 
     # ImGui files
     src/imgui/imgui.cpp
     src/imgui/imgui_demo.cpp
     src/imgui/imgui_draw.cpp
-    src/imgui/imgui_impl_glfw.cpp
+    src/imgui/imgui_impl_sdl3.cpp
     src/imgui/imgui_impl_opengl3.cpp
     src/imgui/imgui_tables.cpp
     src/imgui/imgui_widgets.cpp
@@ -122,9 +110,10 @@ add_dependencies(${PROJECT_NAME} shaders assets)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     OpenGL::GL
-    glfw
+    SDL3::SDL3
     glm::glm
     tomlplusplus::tomlplusplus
+    nfd
     ${CMAKE_DL_LIBS}
 )
 
@@ -143,6 +132,7 @@ endif()
 target_compile_options(${PROJECT_NAME} PRIVATE
     -Wall
     -Wextra
+    -DDEBUG
 )
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${PROJECT_SOURCE_DIR}/include"

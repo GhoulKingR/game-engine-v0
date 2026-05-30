@@ -7,7 +7,6 @@
 
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -89,7 +88,7 @@ void engine::gameview::render() {
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    scene::draw();
+    project::scene::draw();
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, multisampledFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);

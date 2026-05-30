@@ -1,35 +1,45 @@
 #include "gui.hpp"
 #include "gameview.hpp"
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_sdl3.h"
+#include "nfd.h"
+#include "project.hpp"
+#include "renderer.hpp"
 #include "scene.hpp"
 
-static GLFWwindow *_window = nullptr;
-void engine::gui::init(GLFWwindow *window) {
-    _window = window;
+#include <format>
+#include <print>
+#include <string>
+#include <nfd.hpp>
+
+void engine::gui::init() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     auto &io = ImGui::GetIO();
     (void)io;
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplSDL3_InitForOpenGL(renderer::window(), renderer::context());
     ImGui_ImplOpenGL3_Init();
 }
 
 void engine::gui::close() {
-    ImGui_ImplGlfw_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 }
 
+constexpr std::string ctrl_modifier(const char *combination) {
+#if __APPLE__
+    return std::format("Command + {}", combination);
+#else
+    return std::format("Ctrl + {}", combination);
+#endif
+}
+
 void engine::gui::render() {
-    int width, height;
-    glfwGetFramebufferSize(_window, &width, &height);
-    glViewport(0, 0, width, height);
     glClearColor(0.1, 0.1, 0.1, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
     static bool show_metrics = true;
@@ -37,10 +47,11 @@ void engine::gui::render() {
         ImGui::ShowMetricsWindow();
     }
 
-#if __APPLE__
-    const char *exit_shortcut = "Command + Q";
-#else
-    const char *exit_shortcut = "Ctrl + Q";
+#ifdef DEBUG
+    static bool show_demo = true;
+    if (show_demo) {
+        ImGui::ShowDemoWindow();
+    }
 #endif
 
     if (ImGui::BeginMainMenuBar()) {
@@ -48,10 +59,22 @@ void engine::gui::render() {
             if (ImGui::MenuItem("New project")) {
             }
             if (ImGui::MenuItem("Open project")) {
+                NFD::UniquePath outPath;
+                auto result = NFD::PickFolder(outPath);
+                if (result == NFD_OKAY) {
+                    project::load(outPath.get());
+                } else if (result == NFD_CANCEL) {
+                    return;
+                } else {
+                    std::println(stderr, "Error: {}", NFD::GetError());
+                }
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Quit", exit_shortcut)) {
-                glfwSetWindowShouldClose(_window, true);
+            if (ImGui::MenuItem("Save", ctrl_modifier("S").c_str())) {
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Quit", ctrl_modifier("Q").c_str())) {
+                renderer::closeWindow();
             }
             ImGui::EndMenu();
         }
@@ -63,12 +86,15 @@ void engine::gui::render() {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Scene")) {
-            if (ImGui::MenuItem("Open scene")) {
+            if (ImGui::MenuItem("Run")) {
             }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Window")) {
             ImGui::MenuItem("Show metrics", nullptr, &show_metrics);
+#ifdef DEBUG
+            ImGui::MenuItem("Show demo", nullptr, &show_demo);
+#endif
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -76,7 +102,8 @@ void engine::gui::render() {
 
     // object tree
     gameview::renderGUI();
-    scene::renderTree();
+    project::renderWindow();
+    project::scene::renderTree();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

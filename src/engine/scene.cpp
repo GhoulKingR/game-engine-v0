@@ -2,10 +2,10 @@
 #include "objects/object.hpp"
 
 #include <cstdint>
-#include <filesystem>
 #include <format>
 #include <memory>
 #include <optional>
+#include <print>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -18,13 +18,15 @@
 #include <vector>
 
 #include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
 
 static std::vector<std::unique_ptr<engine::object::Object>> objects;
 static std::optional<std::filesystem::path> loadedScene = std::nullopt;
 
 static std::unique_ptr<engine::object::Object>
 getObject(const std::string &type, toml::table *tbl) {
+    if (loadedScene == std::nullopt) {
+        std::println("Loaded scene is null");
+    }
     if (type == "Object")
         return std::make_unique<engine::object::Object>(tbl);
     if (type == "Camera")
@@ -36,7 +38,11 @@ getObject(const std::string &type, toml::table *tbl) {
         throw std::runtime_error(std::format("Node '{}' does not exist", type));
 }
 
-void engine::scene::load(std::string_view path) {
+void engine::project::scene::load(const std::filesystem::path &path) {
+    if (loadedScene.has_value()) {
+        unload();
+    }
+
     loadedScene = path;
 
     try {
@@ -55,7 +61,12 @@ void engine::scene::load(std::string_view path) {
     }
 }
 
-void engine::scene::draw() {
+void engine::project::scene::unload() {
+    objects.clear();
+    loadedScene = std::nullopt;
+}
+
+void engine::project::scene::draw() {
     for (const auto &obj : objects) {
         obj->draw();
     }
@@ -63,21 +74,22 @@ void engine::scene::draw() {
 
 // renders tree in the gui
 static std::optional<uint32_t> selected;
-void engine::scene::renderTree() {
+void engine::project::scene::renderTree() {
+    static bool open = false;
     ImGui::Begin("Objects");
     for (const auto &[i, obj] :
          std::ranges::views::zip(std::views::iota(0), objects)) {
         ImGui::Bullet();
         if (ImGui::SmallButton(obj->name.c_str())) {
             selected = i;
+            open = true;
         }
     }
     ImGui::End();
 
-    if (selected.has_value()) {
+    if (open) {
         object::Object *obj = objects[selected.value()].get();
-        ImGui::Begin(
-            std::format("Inspector: {} ({})", obj->name, obj->type()).c_str());
+        ImGui::Begin("Inspector", &open);
         obj->inspector();
         ImGui::End();
     }

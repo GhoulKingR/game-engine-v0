@@ -2,8 +2,7 @@
 name = "Background"
 type = "Sprite"
 textures = [
-    "assets/sprites/background-day.png",
-    "assets/sprites/background-night.png"
+    "assets/sprites/background-day.png"
 ]
 current_texture = 0
 size = [288, 512]

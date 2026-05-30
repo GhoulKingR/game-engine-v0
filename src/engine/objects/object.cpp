@@ -32,7 +32,11 @@ engine::object::Object::Object(toml::table *tbl) {
     rotate = (*tbl)["rotate"].value_or(0.0f);
 }
 
-void engine::object::Object::inspector() {
+void engine::object::Object::inspector(bool show_title) {
+    if (show_title) {
+        ImGui::SeparatorText(std::format("{} (Object)", name).c_str());
+    }
+
     ImGui::Text("Transform");
     ImGui::Indent();
     ImGui::InputInt2("Translate", translate.data());
@@ -138,7 +142,11 @@ void engine::object::Sprite::draw() {
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
 }
 
-void engine::object::Sprite::inspector() {
+void engine::object::Sprite::inspector(bool show_title) {
+    if (show_title) {
+        ImGui::SeparatorText(std::format("{} (Sprite)", name).c_str());
+    }
+
     ImGui::Text("Current Texture");
     ImGui::Indent();
     for (auto [i, path] :
@@ -150,7 +158,14 @@ void engine::object::Sprite::inspector() {
     }
     ImGui::Unindent();
     ImGui::Separator();
-    object::Object::inspector();
+    object::Object::inspector(false);
+}
+
+engine::object::Sprite::~Sprite() {
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteTextures(textures.size(), textures.data());
 }
 
 engine::object::Camera::Camera(toml::table *tbl) : Object(tbl) {
@@ -176,13 +191,17 @@ engine::object::Camera::Camera(toml::table *tbl) : Object(tbl) {
     viewport = {(*tbl)["size"][0].value_or(0), (*tbl)["size"][1].value_or(0)};
 }
 
-void engine::object::Camera::inspector() {
+void engine::object::Camera::inspector(bool show_title) {
+    if (show_title) {
+        ImGui::SeparatorText(std::format("{} (Camera)", name).c_str());
+    }
+
     ImGui::Text("Camera");
     ImGui::Indent();
     ImGui::InputInt2("Size", viewport.data());
     ImGui::Unindent();
     ImGui::Separator();
-    object::Object::inspector();
+    object::Object::inspector(false);
 }
 
 void engine::object::Camera::draw() {
@@ -204,4 +223,10 @@ void engine::object::Camera::draw() {
     glBindBuffer(GL_ARRAY_BUFFER, previewVBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, previewEBO);
     glDrawElements(GL_LINE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
+}
+
+engine::object::Camera::~Camera() {
+    glDeleteBuffers(1, &previewVBO);
+    glDeleteBuffers(1, &previewEBO);
+    glDeleteVertexArrays(1, &previewVAO);
 }

@@ -1,6 +1,6 @@
-[submodule "assets"]
-	path = assets
-	url = https://github.com/samuelcust/flappy-bird-assets.git
 [submodule "game-assets"]
 	path = game-assets
 	url = https://github.com/samuelcust/flappy-bird-assets.git
+[submodule "nativefiledialog-extended"]
+	path = nativefiledialog-extended
+	url = https://github.com/btzy/nativefiledialog-extended.git

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_sdl3.h>
 #include <imgui/imgui_impl_opengl3.h>
 
 #define GL_SILENCE_DEPRECATION
@@ -10,7 +10,7 @@
 
 namespace engine {
 namespace gui {
-void init(GLFWwindow *);
+void init();
 void close();
 void render();
 } // namespace gui
