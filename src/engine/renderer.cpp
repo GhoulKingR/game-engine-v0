@@ -1,4 +1,6 @@
 #include "renderer.hpp"
+#include "gameview.hpp"
+#include <cstdint>
 #include <cstdio>
 #include <format>
 #include <print>
@@ -10,6 +12,7 @@
 #include <imgui/imgui_internal.h>
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_events.h>
 
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
@@ -28,8 +31,10 @@ void engine::renderer::init() {
         exit(EXIT_FAILURE);
     }
 
+#if __APPLE__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
                         SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+#endif
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
                         SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -81,25 +86,56 @@ void engine::renderer::cleanup() {
 }
 
 static bool running = true;
+static float _zoom = 1.0;
+static glm::vec2 _pan_delta(0.0, 0.0);
+static void processInput() {
+    SDL_Event event;
+    static bool scrolling = false;
+    const uint64_t SCROLL_TIMEOUT_NS = 10000000; // 100 milliseconds
+    static uint64_t lastScroll = 0;
+
+
+    while (SDL_PollEvent(&event)) {
+        ImGui_ImplSDL3_ProcessEvent(&event);
+        if (event.type == SDL_EVENT_QUIT) {
+            running = false;
+        } else if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
+                   event.window.windowID == SDL_GetWindowID(_window)) {
+            running = false;
+        } else if (event.type == SDL_EVENT_WINDOW_RESIZED) {
+            SDL_GetWindowSizeInPixels(_window, &screenWidth, &screenHeight);
+            glViewport(0, 0, screenWidth, screenHeight);
+        } else if (event.type == SDL_EVENT_PINCH_UPDATE) {
+            _zoom = event.pinch.scale;
+        } else if (event.type == SDL_EVENT_PINCH_END) {
+            _zoom = 1.0;
+        } else if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+            if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
+                _pan_delta = glm::vec2(-event.wheel.x, -event.wheel.y);
+            } else {
+                _pan_delta = glm::vec2(event.wheel.x, event.wheel.y);
+            }
+            scrolling = true;
+            lastScroll = SDL_GetTicksNS();
+            // std::println("Mouse scroll ({}, {})", event.wheel.x, event.wheel.y);
+        }
+    }
+    
+    if (scrolling) {
+        auto current = SDL_GetTicksNS();
+        if (current - lastScroll > SCROLL_TIMEOUT_NS) {
+            scrolling = false;
+            _pan_delta.x = 0.0;
+            _pan_delta.y = 0.0;
+        }
+    }
+}
+float engine::renderer::zoom() { return _zoom; }
+glm::vec2 engine::renderer::scroll() { return _pan_delta; }
 
 void engine::renderer::loop(std::function<void()> callback) {
     while (running) {
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            ImGui_ImplSDL3_ProcessEvent(&event);
-            if (event.type == SDL_EVENT_QUIT) {
-                running = false;
-            }
-            if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-                event.window.windowID == SDL_GetWindowID(_window)) {
-                running = false;
-            }
-            if (event.type == SDL_EVENT_WINDOW_RESIZED) {
-                SDL_GetWindowSizeInPixels(_window, &screenWidth, &screenHeight);
-                glViewport(0, 0, screenWidth, screenHeight);
-            }
-        }
-
+        processInput();
         callback();
         SDL_GL_SwapWindow(_window);
     }

@@ -1,5 +1,7 @@
 #include "gameview.hpp"
+#include "renderer.hpp"
 #include "scene.hpp"
+#include <cstdint>
 #include <imgui/imgui.h>
 
 #include <glm/glm.hpp>
@@ -7,6 +9,8 @@
 
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
+
+#include <SDL3/SDL.h>
 
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -18,9 +22,19 @@ static unsigned int FBO = 0;
 static unsigned int RBO1 = 0;
 static unsigned int RBO2 = 0;
 static unsigned int multisampledFBO = 0;
+static float _scale = 1.0;
+static glm::vec2 _view_translate(0.0, 0.0);
+
+const float SCROLL_SPEED = 0.1;
 
 engine::vec2i engine::gameview::getviewport() {
     return {viewportWidth, viewportHeight};
+}
+
+void engine::gameview::reset() {
+    _scale = 1.0;
+    _view_translate.x = 0.0;
+    _view_translate.y = 0.0;
 }
 
 static void constructRenderTexture() {
@@ -85,7 +99,7 @@ void engine::gameview::render() {
     glViewport(0, 0, viewportWidth, viewportHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, multisampledFBO);
 
-    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     project::scene::draw();
@@ -105,12 +119,16 @@ void engine::gameview::renderGUI() {
 
     ImGui::Begin("Game View", nullptr, gvFlags);
 
+    if (ImGui::IsWindowHovered()) {
+        _scale *= renderer::zoom();
+        _view_translate += (renderer::scroll() * SCROLL_SPEED);
+    }
+
     auto windowSize = ImGui::GetContentRegionAvail();
     engine::gameview::set_viewport(
         {static_cast<int>(windowSize.x), static_cast<int>(windowSize.y)});
-    ImGui::Image(
-        reinterpret_cast<void *>(static_cast<intptr_t>(viewTexture)),
-        windowSize, ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::Image(reinterpret_cast<void *>(static_cast<intptr_t>(viewTexture)),
+                 windowSize, ImVec2(0, 1), ImVec2(1, 0));
 
     ImGui::End();
 }
@@ -118,7 +136,9 @@ void engine::gameview::renderGUI() {
 glm::mat4 engine::gameview::calculate_aspect_ratio() {
     auto pixelSize = 1.0f / glm::vec2(viewportWidth, viewportHeight);
     auto scale = glm::identity<glm::mat4>();
+    scale = glm::translate(
+        scale, glm::vec3(_view_translate.x, _view_translate.y, 0.0));
+    scale = glm::scale(scale, glm::vec3(_scale, _scale, 1.0));
     scale = glm::scale(scale, glm::vec3(pixelSize.x, pixelSize.y, 1.0));
     return scale;
 }
-

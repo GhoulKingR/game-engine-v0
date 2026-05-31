@@ -19,6 +19,8 @@ vec2i get_viewport();
 void set_viewport(const vec2i &);
 void closeWindow();
 void loop(std::function<void()>);
+float zoom();
+glm::vec2 scroll();
 SDL_Window *window();
 SDL_GLContext context();
 } // namespace renderer

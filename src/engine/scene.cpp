@@ -1,4 +1,5 @@
 #include "scene.hpp"
+#include "gameview.hpp"
 #include "objects/object.hpp"
 
 #include <cstdint>
@@ -40,10 +41,14 @@ getObject(const std::string &type, toml::table *tbl) {
 
 void engine::project::scene::load(const std::filesystem::path &path) {
     if (loadedScene.has_value()) {
+        if (loadedScene.value() == path) {
+            return;
+        }
         unload();
     }
 
     loadedScene = path;
+    gameview::reset();
 
     try {
         auto tbl = toml::parse_file(loadedScene->c_str());
