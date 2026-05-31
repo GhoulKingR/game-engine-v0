@@ -32,6 +32,7 @@ static void handleFile(const fs::path &file) {
 }
 
 static void showDirectory(const fs::path &path) {
+    // separate paths into files and directories
     std::vector<fs::path> directories;
     std::vector<fs::path> files;
     for (const auto &entry : fs::directory_iterator(path)) {
@@ -41,31 +42,33 @@ static void showDirectory(const fs::path &path) {
             files.push_back(entry.path());
         }
     }
-
     std::sort(directories.begin(), directories.end());
     std::sort(files.begin(), files.end());
+
+    // directories
     for (const auto &directory : directories) {
         if (ImGui::TreeNode(directory.filename().c_str())) {
             showDirectory(directory);
             ImGui::TreePop();
         }
     }
-    ImGui::Indent();
-    for (const auto &file : files) {
-        ImGui::Text("%s", file.filename().c_str());
 
-        if (ImGui::IsItemClicked()) {
+    // files
+    ImGui::Indent();
+    static fs::path _file;
+    for (const auto &file : files) {
+        if (ImGui::Selectable(file.filename().c_str(), _file == file)) {
             handleFile(file);
-        }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            _file = file;
         }
     }
     ImGui::Unindent();
 }
 
 void engine::project::renderWindow() {
-    if (ImGui::BeginPopup("Filesystem error")) {
+    ImGui::Begin("Project");
+    showDirectory(fs::current_path());
+    if (ImGui::BeginPopupModal("Filesystem error")) {
         ImGui::Text("%s", error_text.c_str());
         if (ImGui::Button("Close")) {
             error_text = "";
@@ -73,8 +76,5 @@ void engine::project::renderWindow() {
         }
         ImGui::EndPopup();
     }
-
-    ImGui::Begin("Project");
-    showDirectory(fs::current_path());
     ImGui::End();
 }

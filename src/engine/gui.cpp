@@ -15,7 +15,7 @@ void engine::gui::init() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     auto &io = ImGui::GetIO();
-    (void)io;
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
     ImGui_ImplSDL3_InitForOpenGL(renderer::window(), renderer::context());
     ImGui_ImplOpenGL3_Init();
 }

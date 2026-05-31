@@ -125,7 +125,7 @@ void engine::gameview::renderGUI() {
     }
 
     auto windowSize = ImGui::GetContentRegionAvail();
-    engine::gameview::set_viewport(
+    set_viewport(
         {static_cast<int>(windowSize.x), static_cast<int>(windowSize.y)});
     ImGui::Image(reinterpret_cast<void *>(static_cast<intptr_t>(viewTexture)),
                  windowSize, ImVec2(0, 1), ImVec2(1, 0));
