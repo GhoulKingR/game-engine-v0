@@ -117,7 +117,6 @@ static void processInput() {
             }
             scrolling = true;
             lastScroll = SDL_GetTicksNS();
-            // std::println("Mouse scroll ({}, {})", event.wheel.x, event.wheel.y);
         }
     }
     

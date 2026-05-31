@@ -83,7 +83,7 @@ engine::object::Sprite::Sprite(toml::table *tbl,
         auto data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
         if (data == nullptr) {
             throw std::runtime_error(
-                std::format("Failed to load texture: '{}'", path));
+                std::format("Failed to load texture: '{}'", path.c_str()));
         }
         glBindTexture(GL_TEXTURE_2D, texture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -150,8 +150,9 @@ void engine::object::Sprite::inspector(bool show_title) {
     ImGui::Indent();
     for (auto [i, path] :
          std::ranges::views::zip(std::views::iota(0u), texturePaths)) {
-        if (ImGui::Selectable(std::format("{} {}", i, path).c_str(),
-                              i == current_texture)) {
+        if (ImGui::Selectable(
+                std::format("{} {}", i, path.filename().c_str()).c_str(),
+                i == current_texture)) {
             current_texture = i;
         }
     }

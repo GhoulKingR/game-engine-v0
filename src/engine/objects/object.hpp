@@ -35,7 +35,7 @@ struct Sprite : public Object {
   private:
     uint32_t VBO = 0, EBO = 0, VAO = 0, indexCount = 0;
     std::vector<uint32_t> textures;
-    std::vector<std::string> texturePaths;
+    std::vector<std::filesystem::path> texturePaths;
     uint32_t current_texture = 0;
 };
 
