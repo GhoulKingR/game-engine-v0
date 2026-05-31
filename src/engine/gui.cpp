@@ -42,13 +42,13 @@ void engine::gui::render() {
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
-    static bool show_metrics = true;
+    static bool show_metrics = false;
     if (show_metrics) {
         ImGui::ShowMetricsWindow();
     }
 
 #ifdef DEBUG
-    static bool show_demo = true;
+    static bool show_demo = false;
     if (show_demo) {
         ImGui::ShowDemoWindow();
     }
@@ -60,11 +60,13 @@ void engine::gui::render() {
             }
             if (ImGui::MenuItem("Open project")) {
                 NFD::UniquePath outPath;
-                auto result = NFD::PickFolder(outPath);
+                nfdfilteritem_t filters[1];
+                filters[0] = {.name = "Project", .spec = "project"};
+                auto result = NFD::OpenDialog(outPath, filters, 1);
+
                 if (result == NFD_OKAY) {
                     project::load(outPath.get());
                 } else if (result == NFD_CANCEL) {
-                    return;
                 } else {
                     std::println(stderr, "Error: {}", NFD::GetError());
                 }

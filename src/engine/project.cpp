@@ -14,7 +14,8 @@ static std::string error_text;
 void engine::project::load(const char *path) {
     assert(path != nullptr);
     try {
-        fs::current_path(path);
+        fs::path p(path);
+        fs::current_path(p.parent_path());
     } catch (const fs::filesystem_error &err) {
         error_text = err.what();
         ImGui::OpenPopup("Filesystem error");

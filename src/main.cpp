@@ -3,12 +3,15 @@
 #include "engine/renderer.hpp"
 // #include "engine/scene.hpp"
 #include "engine/shaders.hpp"
+#include "nfd.hpp"
 
 #include <cstdlib>
 
 #include <toml++/toml.hpp>
 
 int main() {
+    NFD::Guard ndfGuard;
+
     engine::renderer::init();
     engine::gui::init();
     engine::shader::init();
