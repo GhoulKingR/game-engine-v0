@@ -1,7 +1,6 @@
 #include "engine/gameview.hpp"
 #include "engine/gui.hpp"
 #include "engine/renderer.hpp"
-// #include "engine/scene.hpp"
 #include "engine/shaders.hpp"
 #include "nfd.hpp"
 
@@ -16,7 +15,6 @@ int main() {
     engine::gui::init();
     engine::shader::init();
     engine::gameview::init();
-    // engine::project::scene::load("../game/scene.toml");
 
     engine::renderer::loop([](){
         engine::gameview::render();

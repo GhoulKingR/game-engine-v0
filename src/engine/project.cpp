@@ -1,12 +1,14 @@
 #include "project.hpp"
 #include "scene.hpp"
-#include <algorithm>
 #include <imgui/imgui.h>
 
 #include <cassert>
 #include <filesystem>
+#include <map>
+#include <ranges>
+#include <set>
 #include <string>
-#include <vector>
+#include <utility>
 
 namespace fs = std::filesystem;
 
@@ -33,22 +35,23 @@ static void handleFile(const fs::path &file) {
 
 static void showDirectory(const fs::path &path) {
     // separate paths into files and directories
-    std::vector<fs::path> directories;
-    std::vector<fs::path> files;
-    for (const auto &entry : fs::directory_iterator(path)) {
-        if (entry.is_directory()) {
-            directories.push_back(entry.path());
-        } else {
-            files.push_back(entry.path());
-        }
+    auto all = fs::directory_iterator(path) |
+               std::ranges::views::transform([](const auto &p) {
+                   if (p.is_directory()) {
+                       return std::pair{"directory", p};
+                   } else {
+                       return std::pair{"file", p};
+                   }
+               });
+    std::map<const char *, std::multiset<fs::path>> map;
+    for (const auto &p : all) {
+        map[p.first].insert(p.second);
     }
-    std::sort(directories.begin(), directories.end());
-    std::sort(files.begin(), files.end());
 
     // directories
-    for (const auto &directory : directories) {
-        if (ImGui::TreeNode(directory.filename().c_str())) {
-            showDirectory(directory);
+    for (const auto &dir : map["directory"]) {
+        if (ImGui::TreeNode(dir.filename().c_str())) {
+            showDirectory(dir);
             ImGui::TreePop();
         }
     }
@@ -56,7 +59,7 @@ static void showDirectory(const fs::path &path) {
     // files
     ImGui::Indent();
     static fs::path _file;
-    for (const auto &file : files) {
+    for (const auto &file : map["file"]) {
         if (ImGui::Selectable(file.filename().c_str(), _file == file)) {
             handleFile(file);
             _file = file;
