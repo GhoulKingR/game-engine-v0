@@ -72,7 +72,11 @@ void engine::gui::render() {
                 }
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Save", ctrl_modifier("S").c_str())) {
+            if (ImGui::MenuItem("Save scene", ctrl_modifier("S").c_str())) {
+                auto current = project::scene::current();
+                if (current.has_value()) {
+                    project::scene::save(current.value());
+                }
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Quit", ctrl_modifier("Q").c_str())) {

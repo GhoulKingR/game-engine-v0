@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 
 namespace engine {
 namespace project {
@@ -11,6 +12,8 @@ void save(const std::filesystem::path &);
 void unload();
 void renderTree();
 void draw();
+
+std::optional<std::filesystem::path> current();
 
 } // namespace scene
 } // namespace project

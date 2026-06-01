@@ -23,28 +23,32 @@ struct Object {
     virtual ~Object() {}
     virtual void inspector(bool show_title = true);
     Object(toml::table *tbl);
+    virtual toml::table to_table();
 };
 
 struct Sprite : public Object {
     virtual std::string type() override { return "Sprite"; }
     Sprite(toml::table *tbl, std::filesystem::path &scenePath);
-    virtual void draw() override;
-    virtual void inspector(bool show_title = true) override;
+    void draw() override;
+    void inspector(bool show_title = true) override;
+    toml::table to_table() override;
     ~Sprite();
 
+    vec2i size{0};
+    uint32_t current_texture = 0;
+    std::vector<std::filesystem::path> texturePaths;
   private:
     uint32_t VBO = 0, EBO = 0, VAO = 0, indexCount = 0;
     std::vector<uint32_t> textures;
-    std::vector<std::filesystem::path> texturePaths;
-    uint32_t current_texture = 0;
 };
 
 struct Camera : public Object {
     vec2i viewport;
     Camera(toml::table *tbl);
     virtual std::string type() override { return "Camera"; }
-    virtual void draw() override;
-    virtual void inspector(bool show_title = true) override;
+    void draw() override;
+    void inspector(bool show_title = true) override;
+    toml::table to_table() override;
     ~Camera();
 
   private:

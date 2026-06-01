@@ -2,9 +2,11 @@
 #include "../gameview.hpp"
 #include "../shaders.hpp"
 
+#include <filesystem>
 #include <format>
 #include <ranges>
 #include <stdexcept>
+#include <toml++/impl/array.hpp>
 #include <toml++/impl/table.hpp>
 #include <utility>
 
@@ -15,6 +17,16 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
+toml::table engine::object::Object::to_table() {
+    return toml::table{
+        {"name", name},
+        {"type", type()},
+        {"translate", toml::array{translate[0], translate[1]}},
+        {"scale", toml::array{scale[0], scale[1]}},
+        {"rotate", rotate},
+    };
+}
 
 engine::object::Object::Object(toml::table *tbl) {
     auto name = (*tbl)["name"].value<std::string>();
@@ -99,8 +111,9 @@ engine::object::Sprite::Sprite(toml::table *tbl,
     textures = std::move(_textures);
 
     // create vertices and buffers
-    auto [vertices, indices] =
-        genQuad((*tbl)["size"][0].value_or(0), (*tbl)["size"][1].value_or(0));
+    size[0] = (*tbl)["size"][0].value_or(0);
+    size[1] = (*tbl)["size"][1].value_or(0);
+    auto [vertices, indices] = genQuad(size[0], size[1]);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
     glGenVertexArrays(1, &VAO);
@@ -168,6 +181,22 @@ engine::object::Sprite::~Sprite() {
     glDeleteTextures(textures.size(), textures.data());
 }
 
+toml::table engine::object::Sprite::to_table() {
+    auto table = Object::to_table();
+    table.insert_or_assign("type", type());
+    table.insert_or_assign("current_texture", current_texture);
+    table.insert_or_assign("size", toml::array{size[0], size[1]});
+    auto paths = texturePaths | std::views::transform([](auto p) {
+                     return std::filesystem::proximate(p).string();
+                 });
+    toml::array _textures;
+    for (const auto &p : paths) {
+        _textures.push_back(p);
+    }
+    table.insert_or_assign("textures", _textures);
+    return table;
+}
+
 engine::object::Camera::Camera(toml::table *tbl) : Object(tbl) {
     auto [vertices, indices] = genQuad(1.0f, 1.0f);
     glGenBuffers(1, &previewVBO);
@@ -229,4 +258,11 @@ engine::object::Camera::~Camera() {
     glDeleteBuffers(1, &previewVBO);
     glDeleteBuffers(1, &previewEBO);
     glDeleteVertexArrays(1, &previewVAO);
+}
+
+toml::table engine::object::Camera::to_table() {
+    auto table = Object::to_table();
+    table.insert_or_assign("table", type());
+    table.insert_or_assign("size", toml::array{viewport[0], viewport[1]});
+    return table;
 }

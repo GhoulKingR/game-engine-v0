@@ -3,7 +3,9 @@
 #include "objects/object.hpp"
 
 #include <cstdint>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <print>
@@ -11,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <toml++/impl/array.hpp>
 #include <toml++/impl/json_formatter.hpp>
 #include <toml++/impl/parse_error.hpp>
 #include <toml++/impl/table.hpp>
@@ -104,5 +107,17 @@ void engine::project::scene::renderTree() {
 }
 
 void engine::project::scene::save(const std::filesystem::path &path) {
-    // TODO: Implement this
+    toml::array finalObjs;
+    for (const auto &obj : objects) {
+        finalObjs.push_back(obj->to_table());
+    }
+    auto finalTable = toml::table{{"objects", finalObjs}};
+
+    std::ofstream outFile(path);
+    outFile << finalTable;
+    outFile.close();
+}
+
+std::optional<std::filesystem::path> engine::project::scene::current() {
+    return loadedScene;
 }
