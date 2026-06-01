@@ -264,7 +264,7 @@ engine::object::Camera::~Camera() {
 
 toml::table engine::object::Camera::to_table() {
     auto table = Object::to_table();
-    table.insert_or_assign("table", type());
+    table.insert_or_assign("type", type());
     table.insert_or_assign("size", toml::array{viewport[0], viewport[1]});
     return table;
 }

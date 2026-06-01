@@ -91,8 +91,10 @@ static glm::vec2 _pan_delta(0.0, 0.0);
 static void processInput() {
     SDL_Event event;
     static bool scrolling = false;
+    static bool zooming = false;
     const uint64_t SCROLL_TIMEOUT_NS = 10000000; // 100 milliseconds
     static uint64_t lastScroll = 0;
+    static uint64_t lastZoom = 0;
 
 
     while (SDL_PollEvent(&event)) {
@@ -107,6 +109,8 @@ static void processInput() {
             glViewport(0, 0, screenWidth, screenHeight);
         } else if (event.type == SDL_EVENT_PINCH_UPDATE) {
             _zoom = event.pinch.scale;
+            zooming = true;
+            lastZoom = SDL_GetTicksNS();
         } else if (event.type == SDL_EVENT_PINCH_END) {
             _zoom = 1.0;
         } else if (event.type == SDL_EVENT_MOUSE_WHEEL) {
@@ -126,6 +130,14 @@ static void processInput() {
             scrolling = false;
             _pan_delta.x = 0.0;
             _pan_delta.y = 0.0;
+        }
+    }
+
+    if (zooming) {
+        auto current = SDL_GetTicksNS();
+        if (current - lastZoom > SCROLL_TIMEOUT_NS) {
+            zooming = false;
+            _zoom = 1.0;
         }
     }
 }

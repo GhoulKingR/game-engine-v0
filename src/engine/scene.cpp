@@ -3,6 +3,7 @@
 #include "objects/object.hpp"
 
 #include <cstdint>
+#include <cstdio>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -36,7 +37,7 @@ getObject(const std::string &type, toml::table *tbl) {
         return std::make_unique<engine::object::Sprite>(tbl,
                                                         loadedScene.value());
     else {
-        std::println("Node '{}' does not exist", type);
+        std::println(stderr, "Error :: Object type '{}' does not exist", type);
         return nullptr;
     }
 }
