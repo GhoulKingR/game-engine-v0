@@ -78,14 +78,17 @@ void engine::project::scene::draw() {
 }
 
 // renders tree in the gui
-static std::optional<uint32_t> selected;
 void engine::project::scene::renderTree() {
     static bool open = false;
+    static std::optional<uint32_t> selected;
+
     ImGui::Begin("Objects");
     for (const auto &[i, obj] :
          std::ranges::views::zip(std::views::iota(0), objects)) {
         ImGui::Bullet();
-        if (ImGui::SmallButton(obj->name.c_str())) {
+        bool _s = selected.has_value() &&
+                  (selected.value() == static_cast<uint32_t>(i));
+        if (ImGui::Selectable(obj->name.c_str(), _s && open)) {
             selected = i;
             open = true;
         }
@@ -98,4 +101,8 @@ void engine::project::scene::renderTree() {
         obj->inspector();
         ImGui::End();
     }
+}
+
+void engine::project::scene::save(const std::filesystem::path &path) {
+    // TODO: Implement this
 }

@@ -7,6 +7,7 @@ namespace project {
 namespace scene {
 
 void load(const std::filesystem::path &);
+void save(const std::filesystem::path &);
 void unload();
 void renderTree();
 void draw();

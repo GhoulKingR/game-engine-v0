@@ -19,69 +19,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(tomlplusplus)
 
-function (add_asset_target TARGET)
-    set (multiValue SRC DST)
-    cmake_parse_arguments (arg "" "" "${multiValue}" ${ARGN})
-    set (ASSET_DIR "${arg_DST}/assets")
-    add_custom_command(
-        OUTPUT ${ASSET_DIR}
-        COMMAND ${CMAKE_COMMAND}
-                -E copy_directory
-                "${arg_SRC}" "${ASSET_DIR}"
-        DEPENDS ${arg_SRC}
-        COMMENT "Copying asset files"
-    )
-    add_custom_target(
-        ${TARGET}
-        DEPENDS ${ASSET_DIR}
-    )
-endfunction()
-
-function (add_shader_target TARGET)
-    set (multiValue VERTEX FRAGMENT)
-    cmake_parse_arguments (arg "" "" "${multiValue}" ${ARGN})
-    set (SHADERS_OUT "${CMAKE_CURRENT_BINARY_DIR}/shaders")
-    add_custom_command(
-        OUTPUT ${SHADERS_OUT}
-        COMMAND ${CMAKE_COMMAND}
-                -E make_directory
-                ${SHADERS_OUT}
-        COMMENT "Creating ${SHADERS_OUT} folder"
-    )
-    add_custom_command(
-        OUTPUT "${SHADERS_OUT}/uber.vert"
-        COMMAND ${CMAKE_COMMAND}
-                -E copy
-                "${PROJECT_SOURCE_DIR}/${arg_VERTEX}"
-                "${SHADERS_OUT}/uber.vert"
-        DEPENDS ${SHADERS_OUT} ${arg_VERTEX}
-        COMMENT "Copying vertex shader from ${arg_VERTEX}"
-    )
-    add_custom_command(
-        OUTPUT "${SHADERS_OUT}/uber.frag"
-        COMMAND ${CMAKE_COMMAND}
-                -E copy
-                "${PROJECT_SOURCE_DIR}/${arg_FRAGMENT}"
-                "${SHADERS_OUT}/uber.frag"
-        DEPENDS ${SHADERS_OUT} ${arg_FRAGMENT}
-        COMMENT "Copying fragment shader from ${arg_FRAGMENT}"
-    )
-    add_custom_target(
-        ${TARGET}
-        DEPENDS "${SHADERS_OUT}/uber.frag"
-                "${SHADERS_OUT}/uber.vert"
-            )
-endfunction()
-
-add_asset_target(assets
-    SRC "${PROJECT_SOURCE_DIR}/game-assets"
-    DST "${CMAKE_CURRENT_BINARY_DIR}"
-)
-add_shader_target(shaders
-    VERTEX src/shaders/uber.vert
-    FRAGMENT src/shaders/uber.frag
-)
-
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/glad.c
@@ -104,8 +41,6 @@ add_executable(${PROJECT_NAME}
     src/imgui/imgui_tables.cpp
     src/imgui/imgui_widgets.cpp
 )
-
-add_dependencies(${PROJECT_NAME} shaders assets)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     OpenGL::GL

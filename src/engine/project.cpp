@@ -68,6 +68,7 @@ static void showDirectory(const fs::path &path) {
 void engine::project::renderWindow() {
     ImGui::Begin("Project");
     showDirectory(fs::current_path());
+
     if (ImGui::BeginPopupModal("Filesystem error")) {
         ImGui::Text("%s", error_text.c_str());
         if (ImGui::Button("Close")) {

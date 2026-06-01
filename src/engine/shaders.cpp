@@ -1,33 +1,28 @@
+#include <cassert>
 #include <cstdint>
 #include <vector>
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
 
 #include "shaders.hpp"
-#include <string>
 #include <format>
-#include <fstream>
-#include <sstream>
 #include <stdexcept>
 
-static auto getSource(const std::string &path) {
-    std::ifstream inputFile(path);
-    std::stringstream buffer;
-    buffer << inputFile.rdbuf();
-    return buffer.str();
-}
+#include "../shaders/uber.hpp"
 
 static std::vector<uint32_t> shaders;
 
-static uint32_t loadShader(const std::string &vsource,
-                           const std::string &fsource) {
+static uint32_t loadShader(const char *vsource, const char *fsource) {
+    if (vsource == nullptr || fsource == nullptr) {
+        throw std::runtime_error(
+            "Missing vertex or fragment shader source codes");
+    }
+
     int success;
     char infoLog[512];
 
-    const auto vShaderCode = getSource(vsource);
-    const auto vShaderPtr = vShaderCode.c_str();
     const auto vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vShaderPtr, nullptr);
+    glShaderSource(vertexShader, 1, &vsource, nullptr);
     glCompileShader(vertexShader);
 
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
@@ -36,10 +31,8 @@ static uint32_t loadShader(const std::string &vsource,
         throw std::runtime_error(std::format("VERTEX SHADER :: {}", infoLog));
     }
 
-    const auto fShaderCode = getSource(fsource);
-    const auto fShaderPtr = fShaderCode.c_str();
     const auto fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fShaderPtr, nullptr);
+    glShaderSource(fragmentShader, 1, &fsource, nullptr);
     glCompileShader(fragmentShader);
 
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
@@ -69,7 +62,7 @@ static uint32_t loadShader(const std::string &vsource,
 
 static uint32_t defaultShader = 0;
 void engine::shader::init() {
-    defaultShader = loadShader("shaders/uber.vert", "shaders/uber.frag");
+    defaultShader = loadShader(uber_vert, uber_frag);
     shaders.push_back(defaultShader);
 }
 
@@ -83,19 +76,17 @@ void engine::shader::cleanup() {
 
 void engine::shader::use(uint32_t program) { glUseProgram(program); }
 
-void engine::shader::setMat4(uint32_t program, const std::string &name,
+void engine::shader::setMat4(uint32_t program, const char *name,
                              const glm::mat4 &data) {
-    glUniformMatrix4fv(glGetUniformLocation(program, name.c_str()), 1, GL_FALSE,
+    glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE,
                        glm::value_ptr(data));
 }
 
-void engine::shader::setInt(uint32_t program, const std::string &name,
-                            int data) {
-    glUniform1i(glGetUniformLocation(program, name.c_str()), data);
+void engine::shader::setInt(uint32_t program, const char *name, int data) {
+    glUniform1i(glGetUniformLocation(program, name), data);
 }
 
-void engine::shader::setVec3(uint32_t program, const std::string &name,
+void engine::shader::setVec3(uint32_t program, const char *name,
                              const glm::vec3 &data) {
-    glUniform3f(glGetUniformLocation(program, name.c_str()), data.x, data.y,
-                data.z);
+    glUniform3f(glGetUniformLocation(program, name), data.x, data.y, data.z);
 }
