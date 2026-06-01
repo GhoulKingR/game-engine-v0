@@ -1,12 +1,14 @@
 #include <cassert>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <print>
 #include <vector>
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
 
 #include "shaders.hpp"
 #include <format>
-#include <stdexcept>
 
 #include "../shaders/uber.hpp"
 
@@ -14,8 +16,8 @@ static std::vector<uint32_t> shaders;
 
 static uint32_t loadShader(const char *vsource, const char *fsource) {
     if (vsource == nullptr || fsource == nullptr) {
-        throw std::runtime_error(
-            "Missing vertex or fragment shader source codes");
+        std::println(stderr, "Missing vertex or fragment shader source codes");
+        exit(EXIT_FAILURE);
     }
 
     int success;
@@ -28,7 +30,8 @@ static uint32_t loadShader(const char *vsource, const char *fsource) {
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        throw std::runtime_error(std::format("VERTEX SHADER :: {}", infoLog));
+        std::println(stderr, "VERTEX SHADER :: {}", infoLog);
+        exit(EXIT_FAILURE);
     }
 
     const auto fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -39,7 +42,8 @@ static uint32_t loadShader(const char *vsource, const char *fsource) {
     if (!success) {
         glDeleteShader(vertexShader);
         glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-        throw std::runtime_error(std::format("FRAGMENT SHADER :: {}", infoLog));
+        std::println("FRAGMENT SHADER :: {}", infoLog);
+        exit(EXIT_FAILURE);
     }
 
     auto shaderProgram = glCreateProgram();
@@ -52,7 +56,8 @@ static uint32_t loadShader(const char *vsource, const char *fsource) {
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
         glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-        throw std::runtime_error(std::format("SHADER PROGRAM :: {}", infoLog));
+        std::println("SHADER PROGRAM :: {}", infoLog);
+        exit(EXIT_FAILURE);
     }
 
     glDeleteShader(vertexShader);

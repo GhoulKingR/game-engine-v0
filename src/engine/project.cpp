@@ -8,25 +8,28 @@
 #include <ranges>
 #include <set>
 #include <string>
+#include <system_error>
 #include <utility>
 
 namespace fs = std::filesystem;
 
 static std::string error_text;
 void engine::project::load(const char *path) {
-    assert(path != nullptr);
-    try {
+    if (path != nullptr) {
+        std::error_code ec;
         fs::path p(path);
-        fs::current_path(p.parent_path());
-    } catch (const fs::filesystem_error &err) {
-        error_text = err.what();
-        ImGui::OpenPopup("Filesystem error");
+        fs::current_path(p.parent_path(), ec);
+
+        if (ec) {
+            error_text = ec.message();
+            ImGui::OpenPopup("Filesystem error");
+        }
     }
 }
 
 static void handleFile(const fs::path &file) {
     if (file.extension() == ".scene") {
-        engine::project::scene::load(file);
+        engine::project::scene::load(file, error_text);
     } else {
         error_text = "Unable to handle file type";
         ImGui::OpenPopup("Filesystem error");

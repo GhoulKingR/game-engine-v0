@@ -13,6 +13,7 @@ using vec2i = std::array<int, 2>;
 
 namespace object {
 struct Object {
+    static inline uint32_t objCount = 0;
     std::string name;
     vec2 scale{0};
     vec2i translate{0};

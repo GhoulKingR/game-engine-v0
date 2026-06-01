@@ -9,7 +9,7 @@ translate = [ 0, 0 ]
 type = 'Sprite'
 
 [[objects]]
-current_texture = 2
+current_texture = 0
 name = 'Red Bird'
 rotate = 0.0
 scale = [ 1.0, 1.0 ]

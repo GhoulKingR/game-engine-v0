@@ -10,7 +10,7 @@
 #include <optional>
 #include <print>
 #include <ranges>
-#include <stdexcept>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <toml++/impl/array.hpp>
@@ -28,9 +28,6 @@ static std::optional<std::filesystem::path> loadedScene = std::nullopt;
 
 static std::unique_ptr<engine::object::Object>
 getObject(const std::string &type, toml::table *tbl) {
-    if (loadedScene == std::nullopt) {
-        std::println("Loaded scene is null");
-    }
     if (type == "Object")
         return std::make_unique<engine::object::Object>(tbl);
     if (type == "Camera")
@@ -38,11 +35,14 @@ getObject(const std::string &type, toml::table *tbl) {
     if (type == "Sprite")
         return std::make_unique<engine::object::Sprite>(tbl,
                                                         loadedScene.value());
-    else
-        throw std::runtime_error(std::format("Node '{}' does not exist", type));
+    else {
+        std::println("Node '{}' does not exist", type);
+        return nullptr;
+    }
 }
 
-void engine::project::scene::load(const std::filesystem::path &path) {
+void engine::project::scene::load(const std::filesystem::path &path,
+                                  std::string &error_text) {
     if (loadedScene.has_value()) {
         if (loadedScene.value() == path) {
             return;
@@ -53,19 +53,25 @@ void engine::project::scene::load(const std::filesystem::path &path) {
     loadedScene = path;
     gameview::reset();
 
-    try {
-        auto tbl = toml::parse_file(loadedScene->c_str());
-        if (auto objs = tbl["objects"].as_array()) {
-            for (auto &&node : *objs) {
-                if (auto table = node.as_table()) {
-                    auto type = (*table)["type"].value_or("");
-                    auto result = getObject(type, table);
+    // try {
+    auto tbl = toml::parse_file(loadedScene->c_str());
+    if (!tbl) {
+        std::stringstream ss;
+        ss << "Error parsing scene: " << tbl.error();
+        error_text = ss.str();
+        ImGui::OpenPopup("Filesystem error");
+    }
+
+    if (auto objs = tbl.table()["objects"].as_array()) {
+        for (auto &&node : *objs) {
+            if (auto table = node.as_table()) {
+                auto type = (*table)["type"].value_or("");
+                auto result = getObject(type, table);
+                if (result != nullptr) {
                     objects.push_back(std::move(result));
                 }
             }
         }
-    } catch (const toml::parse_error &err) {
-        throw std::runtime_error(err);
     }
 }
 

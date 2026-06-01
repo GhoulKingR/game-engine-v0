@@ -2,10 +2,11 @@
 #include "../gameview.hpp"
 #include "../shaders.hpp"
 
+#include <cstdio>
 #include <filesystem>
 #include <format>
+#include <print>
 #include <ranges>
-#include <stdexcept>
 #include <toml++/impl/array.hpp>
 #include <toml++/impl/table.hpp>
 #include <utility>
@@ -33,7 +34,8 @@ engine::object::Object::Object(toml::table *tbl) {
     if (name.has_value()) {
         this->name = name.value();
     } else {
-        throw std::runtime_error("Missing important field \"name\"");
+        objCount++;
+        this->name = std::format("{} #{}", type(), objCount);
     }
 
     translate = {(*tbl)["translate"][0].value_or(0),
@@ -94,8 +96,8 @@ engine::object::Sprite::Sprite(toml::table *tbl,
         int width, height, nrChannels;
         auto data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
         if (data == nullptr) {
-            throw std::runtime_error(
-                std::format("Failed to load texture: '{}'", path.c_str()));
+            std::println(stderr, "Failed to load texture: '{}'", path.c_str());
+            continue;
         }
         glBindTexture(GL_TEXTURE_2D, texture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
