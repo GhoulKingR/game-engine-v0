@@ -1,28 +1,39 @@
 [[objects]]
-current_texture = 0
 name = 'Background'
-rotate = 0.0
-scale = [ 2.0, 2.0 ]
-size = [ 288, 512 ]
-textures = [ 'assets/sprites/background-day.png' ]
-translate = [ 0, 0 ]
-type = 'Sprite'
+
+    [objects.sprite]
+    current = 0
+    size = [ 288, 512 ]
+    textures = [ 'assets/sprites/background-day.png' ]
+
+    [objects.transform]
+    rotate = 98.742996215820312
+    scale = [ 2.0, 2.0 ]
+    translate = [ 0, 0 ]
 
 [[objects]]
-current_texture = 0
-rotate = 0.0
-scale = [ 1.0, 1.0 ]
-size = [ 34, 24 ]
-textures = [ 'assets/sprites/redbird-upflap.png', 'assets/sprites/redbird-midflap.png', 'assets/sprites/redbird-downflap.png' ]
-translate = [ 0, 0 ]
-type = 'Sprite'
 name = 'Bird'
+
+    [objects.sprite]
+    current = 2
+    size = [ 288, 512 ]
+    textures = [
+        'assets/sprites/redbird-upflap.png',
+        'assets/sprites/redbird-midflap.png',
+        'assets/sprites/redbird-downflap.png'
+    ]
+
+    [objects.transform]
+    rotate = 0.0
+    scale = [ 1.0, 1.0 ]
+    translate = [ 0, 0 ]
 
 [[objects]]
 name = 'Second node'
-rotate = 24.686000823974609
-scale = [ 1.0, 1.0 ]
-size = [ 288, 512 ]
+size = [ 218, 522 ]
 type = 'Camera'
-translate = [ 0, 250 ]
 
+    [objects.transform]
+    rotate = 24.686000823974609
+    scale = [ 1.0, 1.0 ]
+    translate = [ 0, 250 ]

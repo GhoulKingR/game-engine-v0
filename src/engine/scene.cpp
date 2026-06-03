@@ -3,13 +3,9 @@
 #include "objects/object.hpp"
 
 #include <cstdint>
-#include <cstdio>
 #include <filesystem>
-#include <format>
 #include <fstream>
-#include <memory>
 #include <optional>
-#include <print>
 #include <ranges>
 #include <sstream>
 #include <string>
@@ -19,31 +15,23 @@
 #include <toml++/impl/parse_error.hpp>
 #include <toml++/impl/table.hpp>
 #include <toml++/toml.hpp>
-#include <utility>
+#include <variant>
 #include <vector>
 
 #include <imgui/imgui.h>
 
-static std::vector<std::unique_ptr<engine::object::Object>> objects;
+static std::vector<engine::object::Object> objects;
 static std::optional<std::filesystem::path> loadedScene = std::nullopt;
 
-static std::unique_ptr<engine::object::Object>
-getObject(const std::string &type, toml::table *tbl) {
-    if (type == "Object")
-        return std::make_unique<engine::object::Object>(tbl);
-    if (type == "Camera")
-        return std::make_unique<engine::object::Camera>(tbl);
-    if (type == "Sprite")
-        return std::make_unique<engine::object::Sprite>(tbl,
-                                                        loadedScene.value());
-    else {
-        std::println(stderr, "Error :: Object type '{}' does not exist", type);
-        return nullptr;
+static engine::object::Object getObject(const std::string &type, toml::table *tbl) {
+    if (type == "Camera") {
+        return engine::object::Camera(tbl);
+    } else {
+        return engine::object::SceneObject(tbl);
     }
 }
 
-void engine::project::scene::load(const std::filesystem::path &path,
-                                  std::string &error_text) {
+void engine::project::scene::load(const std::filesystem::path &path, std::string &error_text) {
     if (loadedScene.has_value()) {
         if (loadedScene.value() == path) {
             return;
@@ -67,10 +55,7 @@ void engine::project::scene::load(const std::filesystem::path &path,
         for (auto &&node : *objs) {
             if (auto table = node.as_table()) {
                 auto type = (*table)["type"].value_or("");
-                auto result = getObject(type, table);
-                if (result != nullptr) {
-                    objects.push_back(std::move(result));
-                }
+                objects.push_back(getObject(type, table));
             }
         }
     }
@@ -82,8 +67,11 @@ void engine::project::scene::unload() {
 }
 
 void engine::project::scene::draw() {
-    for (const auto &obj : objects) {
-        obj->draw();
+    for (auto &obj : objects) {
+        std::visit(
+            [](auto &_o){ _o.draw(); },
+            obj
+        );
     }
 }
 
@@ -92,13 +80,15 @@ void engine::project::scene::renderTree() {
     static bool open = false;
     static std::optional<uint32_t> selected;
 
-    ImGui::Begin("Objects");
-    for (const auto &[i, obj] :
-         std::ranges::views::zip(std::views::iota(0), objects)) {
+    ImGui::Begin("Scene");
+    auto _objects_iter = std::ranges::views::zip(std::views::iota(0), objects);
+    for (const auto &[i, obj] : _objects_iter) {
         ImGui::Bullet();
-        bool _s = selected.has_value() &&
-                  (selected.value() == static_cast<uint32_t>(i));
-        if (ImGui::Selectable(obj->name.c_str(), _s && open)) {
+        bool _s = selected.has_value()
+                && (selected.value() == static_cast<uint32_t>(i));
+
+        auto name = std::visit([](const auto &n){ return n.name; }, obj);
+        if (ImGui::Selectable(name.c_str(), _s && open)) {
             selected = i;
             open = true;
         }
@@ -106,17 +96,22 @@ void engine::project::scene::renderTree() {
     ImGui::End();
 
     if (open) {
-        object::Object *obj = objects[selected.value()].get();
+        auto &obj = objects.at(selected.value());
         ImGui::Begin("Inspector", &open);
-        obj->inspector();
+        std::visit([](auto &_o){_o.inspector();}, obj);
         ImGui::End();
     }
 }
 
 void engine::project::scene::save(const std::filesystem::path &path) {
     toml::array finalObjs;
-    for (const auto &obj : objects) {
-        finalObjs.push_back(obj->to_table());
+    for (auto &obj : objects) {
+        finalObjs.push_back(
+            std::visit(
+                [](auto &_a){ return _a.to_table(); }, 
+                obj
+            )
+        );
     }
     auto finalTable = toml::table{{"objects", finalObjs}};
 

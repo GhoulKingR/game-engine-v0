@@ -37,15 +37,14 @@ static void handleFile(const fs::path &file) {
 }
 
 static void showDirectory(const fs::path &path) {
-    // separate paths into files and directories
     auto all = fs::directory_iterator(path) |
-               std::ranges::views::transform([](const auto &p) {
-                   if (p.is_directory()) {
-                       return std::pair{"directory", p};
-                   } else {
-                       return std::pair{"file", p};
-                   }
-               });
+           std::ranges::views::transform([](const auto &p) {
+               if (p.is_directory()) {
+                   return std::pair{"directory", p};
+               } else {
+                   return std::pair{"file", p};
+               }
+           });
     std::map<const char *, std::multiset<fs::path>> map;
     for (const auto &p : all) {
         map[p.first].insert(p.second);

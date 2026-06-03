@@ -29,6 +29,7 @@ add_executable(${PROJECT_NAME}
     src/engine/scene.cpp
     src/engine/project.cpp
     src/engine/objects/object.cpp
+    src/engine/objects/component.cpp
 
     # ImGui files
     src/imgui/imgui.cpp
@@ -69,6 +70,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -DDEBUG
     -O3
     -fno-exceptions
+    -fno-rtti
 )
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${PROJECT_SOURCE_DIR}/include"

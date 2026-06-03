@@ -1,61 +1,127 @@
 #include "object.hpp"
 #include "../gameview.hpp"
 #include "../shaders.hpp"
+#include "../scene.hpp"
+#include "component.hpp"
 
+#include <cstdint>
 #include <cstdio>
-#include <filesystem>
+#include <cstdlib>
 #include <format>
 #include <print>
 #include <ranges>
-#include <toml++/impl/array.hpp>
+#include <string_view>
 #include <toml++/impl/table.hpp>
 #include <utility>
 
 #include <imgui/imgui.h>
+#include <variant>
+#include <vector>
 
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
-
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-toml::table engine::object::Object::to_table() {
-    return toml::table{
-        {"name", name},
-        {"type", type()},
-        {"translate", toml::array{translate[0], translate[1]}},
-        {"scale", toml::array{scale[0], scale[1]}},
-        {"rotate", rotate},
-    };
+template<class... Ts>
+struct overloaded : Ts... {
+    using Ts::operator()...;
+};
+
+namespace comp = engine::object::component;
+static comp::Component getComponent(std::string_view key, toml::table *tbl) {
+    if (key == "transform") {
+        return engine::object::component::Transform(tbl);
+    } else if (key == "sprite") {
+        auto path = engine::project::scene::current();
+        return engine::object::component::Sprite(tbl, path.value());
+    } else {
+        std::println(stderr, "Invalid key {}", key);
+        exit(EXIT_FAILURE);
+    }
 }
 
-engine::object::Object::Object(toml::table *tbl) {
+static std::vector<comp::Component> loadComponents(toml::table *tbl) {
+    auto tables = (*tbl) |
+        std::ranges::views::filter([](const auto &t){ return t.second.is_table(); }) |
+        std::ranges::views::transform([](const auto &_t) {
+            const auto &[key, table] = _t;
+            auto t = table.as_table();
+            return getComponent(key.str(), t);
+        });
+    return std::vector(tables.begin(), tables.end());
+}
+
+engine::object::SceneObject::SceneObject(toml::table *tbl) {
+    static uint32_t objCount = 0;
     auto name = (*tbl)["name"].value<std::string>();
+
     if (name.has_value()) {
         this->name = name.value();
     } else {
         objCount++;
-        this->name = std::format("{} #{}", type(), objCount);
+        this->name = std::format("SceneObject #{}", objCount);
     }
 
-    translate = {(*tbl)["translate"][0].value_or(0),
-                 (*tbl)["translate"][1].value_or(0)};
-    scale = {(*tbl)["scale"][0].value_or(1.0f),
-             (*tbl)["scale"][1].value_or(1.0f)};
-    rotate = (*tbl)["rotate"].value_or(0.0f);
+    components = loadComponents(tbl);
 }
 
-void engine::object::Object::inspector(bool show_title) {
-    if (show_title) {
-        ImGui::SeparatorText(std::format("{} (Object)", name).c_str());
+toml::table engine::object::SceneObject::to_table() {
+    toml::table tbl;
+    tbl.insert_or_assign("name", name);
+
+    for (const auto &comp : components) {
+        auto table = std::visit(
+            [](const auto &_c) { return _c.to_table(); },
+            comp
+        );
+        tbl.insert_or_assign(table.first, table.second);
     }
 
-    ImGui::Text("Transform");
-    ImGui::Indent();
-    ImGui::InputInt2("Translate", translate.data());
-    ImGui::InputFloat2("Scale", scale.data());
-    ImGui::SliderFloat("Rotate", &rotate, -360.0f, 360.0f);
-    ImGui::Unindent();
+    return tbl;
+}
+
+
+void engine::object::SceneObject::inspector() {
+    ImGui::SeparatorText(name.c_str());
+
+    for (auto &comp : components) {
+        std::visit(
+            [](auto &_c){ _c.inspector(); },
+            comp
+        );
+    }
+}
+
+void engine::object::SceneObject::draw() {
+    auto model = glm::identity<glm::mat4>();
+
+    for (auto &comp : components) {
+        std::visit(
+            overloaded{
+                [&model](component::Transform &t) {
+                    model = glm::translate(model, glm::vec3(t.translate[0], t.translate[1], 0.0));
+                    model = glm::rotate(model, glm::radians(t.rotate), glm::vec3(0.0, 0.0, 1.0));
+                    model = glm::scale(model, glm::vec3(t.scale[0], t.scale[1], 1.0f));
+                },
+                [&model](component::Sprite &s) {
+                    s.draw(model);
+                }
+            },
+            comp
+        );
+    }
+}
+
+engine::object::SceneObject::SceneObject(SceneObject &&_other) {
+    name = std::move(_other.name);
+    components = std::move(_other.components);
+}
+
+engine::object::SceneObject&
+engine::object::SceneObject::operator=(SceneObject &&_other) {
+    name = std::move(_other.name);
+    components = std::move(_other.components);
+    return *this;
 }
 
 static std::pair<std::vector<float>, std::vector<uint32_t>>
@@ -63,7 +129,6 @@ genQuad(float width, float height) {
     const auto h_width = width / 2.0f;
     const auto h_height = height / 2.0f;
 
-    // clang-format off
     return {
         {
             -h_width, -h_height, 0.0f, 0.0f,
@@ -73,166 +138,65 @@ genQuad(float width, float height) {
          },
          {2, 0, 1, 1, 3, 2}
     };
-    // clang-format on
 }
 
-engine::object::Sprite::Sprite(toml::table *tbl,
-                               std::filesystem::path &scenePath)
-    : Object(tbl) {
-    current_texture = (*tbl)["current_texture"].value_or(0);
-
-    // load textures
-    stbi_set_flip_vertically_on_load(true);
-    auto sceneDirectory = scenePath.parent_path();
-    if (auto arr = (*tbl)["textures"].as_array()) {
-        arr->for_each([this, sceneDirectory](auto &&node) {
-            texturePaths.push_back(sceneDirectory / node.value_or(""));
-        });
-    }
-    std::vector<uint32_t> _textures(texturePaths.size(), 0);
-    glGenTextures(_textures.size(), _textures.data());
-    for (auto [texture, path] :
-         std::ranges::views::zip(_textures, texturePaths)) {
-        int width, height, nrChannels;
-        auto data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
-        if (data == nullptr) {
-            std::println(stderr, "Failed to load texture: '{}'", path.c_str());
-            continue;
-        }
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        stbi_image_free(data);
-    }
-    textures = std::move(_textures);
-
-    // create vertices and buffers
-    size[0] = (*tbl)["size"][0].value_or(0);
-    size[1] = (*tbl)["size"][1].value_or(0);
-    auto [vertices, indices] = genQuad(size[0], size[1]);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(),
-                 vertices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(),
-                 indices.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-                          reinterpret_cast<void *>(0));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-                          reinterpret_cast<void *>(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    indexCount = indices.size();
-}
-
-void engine::object::Sprite::draw() {
-    auto shdr = shader::default_shader();
-    shader::use(shdr);
-    shader::setMat4(shdr, "aspectRatio", gameview::calculate_aspect_ratio());
-
-    auto model = glm::identity<glm::mat4>();
-    model = glm::translate(model, glm::vec3(translate[0], translate[1], 0.0));
-    model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0, 0.0, 1.0));
-    model = glm::scale(model, glm::vec3(scale[0], scale[1], 1.0f));
-    shader::setMat4(shdr, "model", model);
-
-    shader::setInt(shdr, "useColor", 0);
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBindTexture(GL_TEXTURE_2D, textures.at(current_texture));
-    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
-}
-
-void engine::object::Sprite::inspector(bool show_title) {
-    if (show_title) {
-        ImGui::SeparatorText(std::format("{} (Sprite)", name).c_str());
-    }
-
-    ImGui::Text("Current Texture");
-    ImGui::Indent();
-    for (auto [i, path] :
-         std::ranges::views::zip(std::views::iota(0u), texturePaths)) {
-        if (ImGui::Selectable(
-                std::format("{} {}", i, path.filename().c_str()).c_str(),
-                i == current_texture)) {
-            current_texture = i;
-        }
-    }
-    ImGui::Unindent();
-    ImGui::Separator();
-    object::Object::inspector(false);
-}
-
-engine::object::Sprite::~Sprite() {
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteTextures(textures.size(), textures.data());
-}
-
-toml::table engine::object::Sprite::to_table() {
-    auto table = Object::to_table();
-    table.insert_or_assign("type", type());
-    table.insert_or_assign("current_texture", current_texture);
-    table.insert_or_assign("size", toml::array{size[0], size[1]});
-    auto paths = texturePaths | std::views::transform([](auto p) {
-                     return std::filesystem::proximate(p).string();
-                 });
-    toml::array _textures;
-    for (const auto &p : paths) {
-        _textures.push_back(p);
-    }
-    table.insert_or_assign("textures", _textures);
-    return table;
-}
-
-engine::object::Camera::Camera(toml::table *tbl) : Object(tbl) {
+engine::object::Camera::Camera(toml::table *tbl) {
+    // : transform() {
     auto [vertices, indices] = genQuad(1.0f, 1.0f);
     glGenBuffers(1, &previewVBO);
     glGenBuffers(1, &previewEBO);
     glGenVertexArrays(1, &previewVAO);
     glBindVertexArray(previewVAO);
+
     glBindBuffer(GL_ARRAY_BUFFER, previewVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(),
-                 vertices.data(), GL_STATIC_DRAW);
+    glBufferData(
+        GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(),
+        vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, previewEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(),
-                 indices.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-                          reinterpret_cast<void *>(0));
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(),
+        indices.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+        reinterpret_cast<void *>(0));
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-                          reinterpret_cast<void *>(2 * sizeof(float)));
+    glVertexAttribPointer(
+        1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+        reinterpret_cast<void *>(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     indexCount = indices.size();
-    viewport = {(*tbl)["size"][0].value_or(0), (*tbl)["size"][1].value_or(0)};
-}
+    viewport = {
+        (*tbl)["size"][0].value_or(0),
+        (*tbl)["size"][1].value_or(0)
+    };
 
-void engine::object::Camera::inspector(bool show_title) {
-    if (show_title) {
-        ImGui::SeparatorText(std::format("{} (Camera)", name).c_str());
+    static uint32_t objCount = 0;
+    auto name = (*tbl)["name"].value<std::string>();
+
+    if (name.has_value()) {
+        this->name = name.value();
+    } else {
+        objCount++;
+        this->name = std::format("Camera #{}", objCount);
     }
 
+    transform = std::move(
+            std::get<component::Transform>(loadComponents(tbl)[0])
+    );
+}
+
+void engine::object::Camera::inspector() {
+    ImGui::SeparatorText(std::format("{} (Camera)", name).c_str());
+
+    transform.inspector();
+    ImGui::Separator();
     ImGui::Text("Camera");
     ImGui::Indent();
-    ImGui::InputInt2("Size", viewport.data());
+        ImGui::InputInt2("Size", viewport.data());
     ImGui::Unindent();
     ImGui::Separator();
-    object::Object::inspector(false);
 }
 
 void engine::object::Camera::draw() {
@@ -241,9 +205,9 @@ void engine::object::Camera::draw() {
     shader::setMat4(shdr, "aspectRatio", gameview::calculate_aspect_ratio());
 
     auto model = glm::identity<glm::mat4>();
-    model = glm::translate(model, glm::vec3(translate[0], translate[1], 0.0));
-    model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0, 0.0, 1.0));
-    model = glm::scale(model, glm::vec3(scale[0], scale[1], 1.0f));
+    model = glm::translate(model, glm::vec3(transform.translate[0], transform.translate[1], 0.0));
+    model = glm::rotate(model, glm::radians(transform.rotate), glm::vec3(0.0, 0.0, 1.0));
+    model = glm::scale(model, glm::vec3(transform.scale[0], transform.scale[1], 1.0f));
     model = glm::scale(model, glm::vec3(viewport[0], viewport[1], 1.0f));
     shader::setMat4(shdr, "model", model);
 
@@ -257,14 +221,44 @@ void engine::object::Camera::draw() {
 }
 
 engine::object::Camera::~Camera() {
-    glDeleteBuffers(1, &previewVBO);
-    glDeleteBuffers(1, &previewEBO);
-    glDeleteVertexArrays(1, &previewVAO);
+    if (previewVBO != 0) glDeleteBuffers(1, &previewVBO);
+    if (previewEBO != 0) glDeleteBuffers(1, &previewEBO);
+    if (previewVAO != 0) glDeleteVertexArrays(1, &previewVAO);
 }
 
 toml::table engine::object::Camera::to_table() {
-    auto table = Object::to_table();
-    table.insert_or_assign("type", type());
-    table.insert_or_assign("size", toml::array{viewport[0], viewport[1]});
-    return table;
+    auto _transform = transform.to_table();
+    return toml::table {
+        {"type", "Camera"},
+        {"name", name},
+        {"size", toml::array{viewport[0], viewport[1]}},
+        {_transform.first, _transform.second},
+    };
+}
+
+engine::object::Camera::Camera(Camera &&_other) {
+    name = std::move(_other.name);
+    viewport = std::move(_other.viewport);
+    transform = std::move(_other.transform);
+    transform = std::move(_other.transform);
+
+    previewVBO = _other.previewVBO; _other.previewVBO = 0;
+    previewEBO = _other.previewEBO; _other.previewEBO = 0;
+    previewVAO = _other.previewVAO; _other.previewVAO = 0;
+
+    indexCount = _other.indexCount;
+}
+
+engine::object::Camera& engine::object::Camera::operator=(Camera &&_other) {
+    name = std::move(_other.name);
+    viewport = std::move(_other.viewport);
+    transform = std::move(_other.transform);
+    transform = std::move(_other.transform);
+
+    previewVBO = _other.previewVBO; _other.previewVBO = 0;
+    previewEBO = _other.previewEBO; _other.previewEBO = 0;
+    previewVAO = _other.previewVAO; _other.previewVAO = 0;
+
+    indexCount = _other.indexCount;
+    return *this;
 }
