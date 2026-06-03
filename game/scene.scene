@@ -7,15 +7,15 @@ name = 'Background'
     textures = [ 'assets/sprites/background-day.png' ]
 
     [objects.transform]
-    rotate = 98.742996215820312
-    scale = [ 2.0, 2.0 ]
+    rotate = 0.0
+    scale = [ 1.0, 1.0 ]
     translate = [ 0, 0 ]
 
 [[objects]]
 name = 'Bird'
 
     [objects.sprite]
-    current = 0
+    current = 1
     size = [ 34, 24 ]
     textures = [
         'assets/sprites/redbird-upflap.png',
@@ -30,10 +30,10 @@ name = 'Bird'
 
 [[objects]]
 name = 'Second node'
-size = [ 288, 522 ]
+size = [ 288, 512 ]
 type = 'Camera'
 
     [objects.transform]
-    rotate = 24.686000823974609
+    rotate = 0.0
     scale = [ 1.0, 1.0 ]
-    translate = [ 0, 250 ]
+    translate = [ 0, 0 ]

@@ -2,6 +2,7 @@
 #include "gameview.hpp"
 #include "objects/object.hpp"
 
+#include <cfloat>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -80,25 +81,30 @@ void engine::project::scene::renderTree() {
     static bool open = false;
     static std::optional<uint32_t> selected;
 
-    ImGui::Begin("Scene");
-    auto _objects_iter = std::ranges::views::zip(std::views::iota(0), objects);
-    for (const auto &[i, obj] : _objects_iter) {
-        ImGui::Bullet();
-        bool _s = selected.has_value()
-                && (selected.value() == static_cast<uint32_t>(i));
+    if (loadedScene.has_value()) {
+        ImGui::Begin("Scene");
+        auto _objects_iter = std::ranges::views::zip(std::views::iota(0), objects);
+        for (const auto &[i, obj] : _objects_iter) {
+            ImGui::Bullet();
+            bool _s = selected.has_value()
+                    && (selected.value() == static_cast<uint32_t>(i));
 
-        auto name = std::visit([](const auto &n){ return n.name; }, obj);
-        if (ImGui::Selectable(name.c_str(), _s && open)) {
-            selected = i;
-            open = true;
+            auto name = std::visit([](const auto &n){ return n.name; }, obj);
+            if (ImGui::Selectable(name.c_str(), _s && open)) {
+                selected = i;
+                open = true;
+            }
         }
+        ImGui::NewLine();
+        ImGui::Button("+ New object", ImVec2(-FLT_MIN, 0.0f));
+        ImGui::End();
     }
-    ImGui::End();
 
     if (open) {
         auto &obj = objects.at(selected.value());
         ImGui::Begin("Inspector", &open);
         std::visit([](auto &_o){_o.inspector();}, obj);
+        ImGui::Button("+ Add component", ImVec2(-FLT_MIN, 0.0f));
         ImGui::End();
     }
 }

@@ -65,6 +65,14 @@ void comp::Transform::operator=(Transform &&_other) {
     rotate = std::move(_other.rotate);
 }
 
+glm::mat4 comp::Transform::model() const {
+    auto model = glm::identity<glm::mat4>();
+    model = glm::translate(model, glm::vec3(translate[0], translate[1], 0.0));
+    model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0, 0.0, 1.0));
+    model = glm::scale(model, glm::vec3(scale[0], scale[1], 1.0f));
+    return model;
+}
+
 std::pair<const char *, toml::table> comp::Transform::to_table() const {
     return {
         "transform",
@@ -123,13 +131,21 @@ comp::Sprite::Sprite(toml::table *tbl, std::filesystem::path &scenePath) {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    glBufferData(
+            GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), 
+            vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), indices.data(), GL_STATIC_DRAW);
+    glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(),
+            indices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
+    glVertexAttribPointer(
+            0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+            reinterpret_cast<void *>(0));
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(2 * sizeof(float)));
+    glVertexAttribPointer(
+            1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+            reinterpret_cast<void *>(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     indexCount = indices.size();

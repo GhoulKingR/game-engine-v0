@@ -19,6 +19,7 @@ namespace engine {
                 Transform(){}
                 Transform(toml::table *);
                 void inspector();
+                glm::mat4 model() const;
                 std::pair<const char *, toml::table> to_table() const;
 
                 Transform(const Transform &) = delete;

@@ -89,20 +89,26 @@ void engine::object::SceneObject::inspector() {
             [](auto &_c){ _c.inspector(); },
             comp
         );
+        ImGui::NewLine();
     }
 }
 
 void engine::object::SceneObject::draw() {
     auto model = glm::identity<glm::mat4>();
 
+    // get model transform
+    for (auto &comp : components) {
+        if (std::holds_alternative<component::Transform>(comp)) {
+            auto &t = std::get<component::Transform>(comp);
+            model = t.model();
+            break;
+        }
+    }
+
     for (auto &comp : components) {
         std::visit(
             overloaded{
-                [&model](component::Transform &t) {
-                    model = glm::translate(model, glm::vec3(t.translate[0], t.translate[1], 0.0));
-                    model = glm::rotate(model, glm::radians(t.rotate), glm::vec3(0.0, 0.0, 1.0));
-                    model = glm::scale(model, glm::vec3(t.scale[0], t.scale[1], 1.0f));
-                },
+                [](const auto &) {},
                 [&model](component::Sprite &s) {
                     s.draw(model);
                 }
@@ -183,7 +189,7 @@ engine::object::Camera::Camera(toml::table *tbl) {
     }
 
     transform = std::move(
-            std::get<component::Transform>(loadComponents(tbl)[0])
+        std::get<component::Transform>(loadComponents(tbl)[0])
     );
 }
 
@@ -191,12 +197,12 @@ void engine::object::Camera::inspector() {
     ImGui::SeparatorText(std::format("{} (Camera)", name).c_str());
 
     transform.inspector();
-    ImGui::Separator();
+    ImGui::NewLine();
     ImGui::Text("Camera");
     ImGui::Indent();
         ImGui::InputInt2("Size", viewport.data());
     ImGui::Unindent();
-    ImGui::Separator();
+    ImGui::NewLine();
 }
 
 void engine::object::Camera::draw() {
@@ -204,11 +210,9 @@ void engine::object::Camera::draw() {
     shader::use(shdr);
     shader::setMat4(shdr, "aspectRatio", gameview::calculate_aspect_ratio());
 
-    auto model = glm::identity<glm::mat4>();
-    model = glm::translate(model, glm::vec3(transform.translate[0], transform.translate[1], 0.0));
-    model = glm::rotate(model, glm::radians(transform.rotate), glm::vec3(0.0, 0.0, 1.0));
-    model = glm::scale(model, glm::vec3(transform.scale[0], transform.scale[1], 1.0f));
-    model = glm::scale(model, glm::vec3(viewport[0], viewport[1], 1.0f));
+    auto model = glm::scale(
+        transform.model(),
+        glm::vec3(viewport[0], viewport[1], 1.0f));
     shader::setMat4(shdr, "model", model);
 
     shader::setInt(shdr, "useColor", 1);

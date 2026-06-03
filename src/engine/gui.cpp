@@ -1,5 +1,6 @@
 #include "gui.hpp"
 #include "gameview.hpp"
+#include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl3.h"
 #include "nfd.h"
 #include "project.hpp"
@@ -56,8 +57,7 @@ void engine::gui::render() {
 
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("New project")) {
-            }
+            if (ImGui::MenuItem("New project")) {}
             if (ImGui::MenuItem("Open project")) {
                 NFD::UniquePath outPath;
                 nfdfilteritem_t filters[1];
@@ -72,6 +72,8 @@ void engine::gui::render() {
                 }
             }
             ImGui::Separator();
+            if (ImGui::MenuItem("New Scene")) {
+            }
             if (ImGui::MenuItem("Save scene", ctrl_modifier("S").c_str())) {
                 auto current = project::scene::current();
                 if (current.has_value()) {
