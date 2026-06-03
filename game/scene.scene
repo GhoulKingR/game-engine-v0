@@ -15,8 +15,8 @@ name = 'Background'
 name = 'Bird'
 
     [objects.sprite]
-    current = 2
-    size = [ 288, 512 ]
+    current = 0
+    size = [ 34, 24 ]
     textures = [
         'assets/sprites/redbird-upflap.png',
         'assets/sprites/redbird-midflap.png',
@@ -30,7 +30,7 @@ name = 'Bird'
 
 [[objects]]
 name = 'Second node'
-size = [ 218, 522 ]
+size = [ 288, 522 ]
 type = 'Camera'
 
     [objects.transform]

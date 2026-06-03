@@ -32,7 +32,6 @@ genQuad(float width, float height) {
 }
 
 namespace comp = engine::object::component;
-
 comp::Transform::Transform(toml::table *tbl) {
     translate = {
         (*tbl)["translate"][0].value_or(0),
@@ -50,7 +49,7 @@ void comp::Transform::inspector() {
     ImGui::Indent();
         ImGui::InputInt2("Translate", translate.data());
         ImGui::InputFloat2("Scale", scale.data());
-        ImGui::SliderFloat("Rotate", &rotate, -360.0f, 360.0f);
+        ImGui::DragFloat("Rotate", &rotate, 1.0f, -360.0f, 360.0f);
     ImGui::Unindent();
 }
 
