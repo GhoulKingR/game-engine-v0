@@ -10,7 +10,7 @@
 #include "shaders.hpp"
 #include <format>
 
-#include "../shaders/uber.hpp"
+#include "uber.hpp"
 
 static std::vector<uint32_t> shaders;
 

@@ -1,14 +1,20 @@
-#include "component.hpp"
-#include <toml++/impl/array.hpp>
-#include <toml++/impl/table.hpp>
+#include <array>
+#include <components.hpp>
+#include <filesystem>
+#include <initializer_list>
+#include <objects.hpp>
+
+#include <print>
 #include <utility>
 #include <vector>
-#include <imgui/imgui.h>
 #include <ranges>
+#include <format>
+#include <imgui/imgui.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
-#include "object.hpp"
-#include "../shaders.hpp"
-#include "../gameview.hpp"
+#include "engine.hpp"
+#include "shaders/shaders.hpp"
 
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
@@ -31,85 +37,80 @@ genQuad(float width, float height) {
     };
 }
 
-namespace comp = engine::object::component;
-comp::Transform::Transform(toml::table *tbl) {
-    translate = {
-        (*tbl)["translate"][0].value_or(0),
-        (*tbl)["translate"][1].value_or(0)
-    };
-    scale = {
-        (*tbl)["scale"][0].value_or(1.0f),
-        (*tbl)["scale"][1].value_or(1.0f)
-    };
-    rotate = (*tbl)["rotate"].value_or(0.0f);
+engine::component::Transform::Transform(
+        vec2<float> _scale, vec2<float> _translate, float _rotate)
+{
+    translate = _translate;
+    scale = _scale;
+    rotate = _rotate;
 }
 
-void comp::Transform::inspector() {
+#ifdef NDEBUG
+void engine::component::Transform::inspector() {
     ImGui::Text("Transform");
     ImGui::Indent();
-        ImGui::InputInt2("Translate", translate.data());
-        ImGui::InputFloat2("Scale", scale.data());
-        ImGui::DragFloat("Rotate", &rotate, 1.0f, -360.0f, 360.0f);
+        ImGui::DragFloat2("Translate", translate.data());
+        ImGui::DragFloat2("Scale", scale.data(), 0.01f);
+        ImGui::DragFloat("Rotate", &rotate, 1.0f);
     ImGui::Unindent();
+    ImGui::NewLine();
 }
+#endif
 
-comp::Transform::Transform(Transform &&_other) {
+engine::component::Transform::Transform(Transform &&_other) {
     scale = std::move(_other.scale);
     translate = std::move(_other.translate);
     rotate = std::move(_other.rotate);
 }
 
-void comp::Transform::operator=(Transform &&_other) {
+void engine::component::Transform::operator=(Transform &&_other) {
     scale = std::move(_other.scale);
     translate = std::move(_other.translate);
     rotate = std::move(_other.rotate);
 }
 
-glm::mat4 comp::Transform::model() const {
+glm::mat4 engine::component::Transform::model() const {
     auto model = glm::identity<glm::mat4>();
-    model = glm::translate(model, glm::vec3(translate[0], translate[1], 0.0));
+    model = glm::translate(model, glm::vec3(translate.x, translate.y, 0.0));
     model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0, 0.0, 1.0));
-    model = glm::scale(model, glm::vec3(scale[0], scale[1], 1.0f));
+    model = glm::scale(model, glm::vec3(scale.x, scale.y, 1.0f));
     return model;
 }
 
-std::pair<const char *, toml::table> comp::Transform::to_table() const {
-    return {
-        "transform",
-        toml::table{
-            {"translate", toml::array{translate[0], translate[1]}},
-            {"scale", toml::array{scale[0], scale[1]}},
-            {"rotate", rotate},
-        }
-    };
-}
+// std::pair<const char *, toml::table>
+// engine::component::Transform::to_table() const {
+//     return {
+//         "transform",
+//         toml::table{
+//             {"translate", toml::array{translate[0], translate[1]}},
+//             {"scale", toml::array{scale[0], scale[1]}},
+//             {"rotate", rotate},
+//         }
+//     };
+// }
 
 
-comp::Sprite::Sprite(toml::table *tbl, std::filesystem::path &scenePath) {
-    current_texture = (*tbl)["current_texture"].value_or(0);
-    size = {
-        (*tbl)["size"][0].value_or(0),
-        (*tbl)["size"][1].value_or(0),
-    };
+engine::component::Sprite::Sprite(int width, int height,
+        std::initializer_list<std::filesystem::path>&& _tex)
+{
+    current_texture = 0;
+    size = { width, height };
 
     // load textures
     stbi_set_flip_vertically_on_load(true);
-    auto sceneDirectory = scenePath.parent_path();
-    if (auto arr = (*tbl)["textures"].as_array()) {
-        arr->for_each([this, sceneDirectory](auto &&node) {
-            texturePaths.push_back(sceneDirectory / node.value_or(""));
-        });
-    }
-    std::vector<uint32_t> _textures(texturePaths.size(), 0);
-    glGenTextures(_textures.size(), _textures.data());
+    texturePaths = _tex;
+
+    std::vector<uint32_t> tx(texturePaths.size(), 0);
+    glGenTextures(tx.size(), tx.data());
     for (auto [texture, path] :
-         std::ranges::views::zip(_textures, texturePaths)) {
+         std::ranges::views::zip(tx, texturePaths)) {
         int width, height, nrChannels;
-        auto data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+        auto data = stbi_load(path.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
         if (data == nullptr) {
             std::println(stderr, "Failed to load texture: '{}'", path.c_str());
             continue;
         }
+
         glBindTexture(GL_TEXTURE_2D, texture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -121,10 +122,10 @@ comp::Sprite::Sprite(toml::table *tbl, std::filesystem::path &scenePath) {
         glGenerateMipmap(GL_TEXTURE_2D);
         stbi_image_free(data);
     }
-    textures = std::move(_textures);
+    textures = std::move(tx);
 
     // create vertices and buffers
-    auto [vertices, indices] = genQuad(size[0], size[1]);
+    auto [vertices, indices] = genQuad(size.x, size.y);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
     glGenVertexArrays(1, &VAO);
@@ -132,7 +133,7 @@ comp::Sprite::Sprite(toml::table *tbl, std::filesystem::path &scenePath) {
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(
-            GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), 
+            GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(),
             vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(
@@ -151,11 +152,10 @@ comp::Sprite::Sprite(toml::table *tbl, std::filesystem::path &scenePath) {
     indexCount = indices.size();
 }
 
-void comp::Sprite::draw(glm::mat4 &model) {
+void engine::component::Sprite::draw(glm::mat4 &model) {
     auto shdr = shader::default_shader();
     shader::use(shdr);
-    shader::setMat4(shdr, "aspectRatio", gameview::calculate_aspect_ratio());
-
+    shader::setMat4(shdr, "aspectRatio", aspectRatio());
     shader::setMat4(shdr, "model", model);
     shader::setInt(shdr, "useColor", 0);
 
@@ -166,7 +166,8 @@ void comp::Sprite::draw(glm::mat4 &model) {
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
 }
 
-void comp::Sprite::inspector() {
+#ifdef NDEBUG
+void engine::component::Sprite::inspector() {
     ImGui::Text("Sprite");
     ImGui::Indent();
         // display paths
@@ -178,36 +179,38 @@ void comp::Sprite::inspector() {
             }
         }
     ImGui::Unindent();
+    ImGui::NewLine();
 }
+#endif
 
-comp::Sprite::~Sprite() {
+engine::component::Sprite::~Sprite() {
     if (VBO != 0) glDeleteBuffers(1, &VBO);
     if (EBO != 0) glDeleteBuffers(1, &EBO);
     if (VAO != 0) glDeleteVertexArrays(1, &VAO);
     if (textures.size() > 0) glDeleteTextures(textures.size(), textures.data());
 }
 
-std::pair<const char *, toml::table> comp::Sprite::to_table() const {
-    auto paths = texturePaths
-        |   std::views::transform([](auto p) {
-                return std::filesystem::proximate(p).string();
-            });
-    toml::array _textures;
-    for (const auto &p : paths) {
-        _textures.push_back(p);
-    }
+// std::pair<const char *, toml::table> comp::Sprite::to_table() const {
+//     auto paths = texturePaths
+//         |   std::views::transform([](auto p) {
+//                 return std::filesystem::proximate(p).string();
+//             });
+//     toml::array _textures;
+//     for (const auto &p : paths) {
+//         _textures.push_back(p);
+//     }
+//
+//     return {
+//         "sprite",
+//         toml::table{
+//             {"current", current_texture},
+//             {"size", toml::array{size[0], size[1]}},
+//             {"textures", _textures}
+//         }
+//     };
+// }
 
-    return {
-        "sprite",
-        toml::table{
-            {"current", current_texture},
-            {"size", toml::array{size[0], size[1]}},
-            {"textures", _textures}
-        }
-    };
-}
-
-comp::Sprite::Sprite(Sprite &&_other) {
+engine::component::Sprite::Sprite(Sprite &&_other) {
     size = std::move(_other.size);
     current_texture = _other.current_texture;
 
@@ -217,13 +220,14 @@ comp::Sprite::Sprite(Sprite &&_other) {
     _other.VBO = 0;
     _other.VAO = 0;
     _other.EBO = 0;
-    
+
     indexCount = _other.indexCount;
     textures = std::move(_other.textures);
     texturePaths = std::move(_other.texturePaths);
 }
 
-comp::Sprite& comp::Sprite::operator=(Sprite &&_other) {
+engine::component::Sprite&
+engine::component::Sprite::operator=(Sprite &&_other) {
     size = std::move(_other.size);
     current_texture = _other.current_texture;
 
@@ -233,9 +237,19 @@ comp::Sprite& comp::Sprite::operator=(Sprite &&_other) {
     _other.VBO = 0;
     _other.VAO = 0;
     _other.EBO = 0;
-    
+
     indexCount = _other.indexCount;
     textures = std::move(_other.textures);
     texturePaths = std::move(_other.texturePaths);
     return *this;
 }
+
+#ifdef NDEBUG
+void engine::component::Physics::inspector() {
+    ImGui::Text("Physics");
+    ImGui::Indent();
+        ImGui::DragFloat("gravity", &gravity, 0.01f);
+    ImGui::Unindent();
+    ImGui::NewLine();
+}
+#endif
