@@ -36,11 +36,10 @@ namespace engine {
         struct Sprite {
             Transform transform;
             uint32_t current_texture = 0;
-            static inline uint32_t spriteCount = 0;
 
             void draw(glm::mat4 &);
 #ifdef NDEBUG
-            void inspector();
+            void inspector(uint32_t);
 #endif
 
             Sprite(const Sprite &) = delete;
@@ -116,9 +115,16 @@ namespace engine {
 #ifdef NDEBUG
             void inspector() {
                 transform.inspector();
+
+                uint32_t i = 0;
                 for (auto &comp : _components) {
-                    std::visit(
-                        [](auto &_c) { _c.inspector(); },
+                    std::visit(overloaded{
+                            [](auto &_c) { _c.inspector(); },
+                            [&i](Sprite &_s){
+                                i++;
+                                _s.inspector(i);
+                            }
+                        },
                         comp
                     );
                 }

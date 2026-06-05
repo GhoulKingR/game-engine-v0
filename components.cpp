@@ -101,7 +101,6 @@ glm::mat4 engine::component::Transform::model() const {
 engine::component::Sprite::Sprite(int width, int height,
         std::initializer_list<std::filesystem::path>&& _tex)
 {
-    spriteCount++;
     current_texture = 0;
     size = { width, height };
 
@@ -177,15 +176,16 @@ void engine::component::Sprite::draw(glm::mat4 &model) {
 }
 
 #ifdef NDEBUG
-void engine::component::Sprite::inspector() {
-    ImGui::Text("Sprite %u", spriteCount);
+void engine::component::Sprite::inspector(uint32_t id) {
+    ImGui::Text("Sprite %u", id);
     ImGui::Indent();
-        transform.inspector(std::format("Sprite{} ", spriteCount));
+        transform.inspector(std::format("Sprite {} ", id));
 
         // display paths
         auto _paths = std::ranges::views::zip(std::views::iota(0u), texturePaths);
         for (auto [i, path] : _paths) {
-            auto name = std::format("{} - {}", i, path.filename().c_str());
+            auto name = std::format("#{}. {} - {}",
+                id, i, path.filename().c_str());
             if (ImGui::Selectable(name.c_str(), i == current_texture)) {
                 current_texture = i;
             }

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <engine.hpp>
 #include <scene.hpp>
+#include <unistd.h>
 
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
@@ -180,6 +181,7 @@ void engine::loadScene(engine::Scene *_scene) {
 }
 
 #ifdef NDEBUG
+static bool paused = false;
 static void guiLoop() {
     glClearColor(0.1, 0.1, 0.1, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -228,7 +230,11 @@ static void gameLoop(float deltaTime) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (currentScene != nullptr) {
+#ifdef NDEBUG
+        if (!paused) currentScene->_update(deltaTime);
+#else
         currentScene->_update(deltaTime);
+#endif
         currentScene->_draw();
     }
 
@@ -254,19 +260,27 @@ static void processInput() {
 #endif
         if (_event.type == SDL_EVENT_QUIT) {
             running = false;
-        } else if (_event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
+        }
+        else if (_event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
                 _event.window.windowID == SDL_GetWindowID(window)) {
             running = false;
-        } else if (_event.type == SDL_EVENT_WINDOW_RESIZED) {
+        }
+        else if (_event.type == SDL_EVENT_WINDOW_RESIZED) {
 #ifdef NDEBUG
             SDL_GetWindowSizeInPixels(window, &(actual.x), &(actual.y));
             glViewport(0, 0, actual.x, actual.y);
+        }
+        else if(_event.type == SDL_EVENT_KEY_UP) {
+            if (_event.key.key == SDLK_0) {
+                paused = !paused;
+            }
+        }
 #else
             SDL_GetWindowSizeInPixels(window,
                     &(viewport.x), &(viewport.y));
             glViewport(0, 0, viewport.x, viewport.y);
-#endif
         }
+#endif
         engine::controls::update(&_event);
     }
 }
