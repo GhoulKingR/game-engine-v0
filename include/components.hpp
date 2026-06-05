@@ -7,7 +7,7 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 
-#include "../common.hpp"
+#include "common.hpp"
 
 namespace engine {
     namespace component {

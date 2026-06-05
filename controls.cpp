@@ -15,44 +15,48 @@ static std::pmr::multimap<
     std::pair<SDL_Keycode, KeyState>
 > inputMap;
 
-void engine::controls::registerAction(const char *action, SDL_Keycode key_code) {
-    inputMap.insert({action, {key_code, KeyState{}}});
-}
+namespace engine {
+    namespace controls {
+        void registerAction(const char *action, SDL_Keycode key_code) {
+            inputMap.insert({action, {key_code, KeyState{}}});
+        }
 
-void engine::controls::update(SDL_Event *event) {
-    if (event->type != SDL_EVENT_KEY_DOWN && event->type != SDL_EVENT_KEY_UP) {
-        return;
-    }
+        void update(SDL_Event *event) {
+            if (event->type != SDL_EVENT_KEY_DOWN && event->type != SDL_EVENT_KEY_UP) {
+                return;
+            }
 
-    for (auto &[_, pair] : inputMap) {
-        if (pair.first == event->key.key) {
-            if (event->type == SDL_EVENT_KEY_DOWN) {
-                if (!pair.second.is_held) {
-                    pair.second.just_pressed = true;
+            for (auto &[_, pair] : inputMap) {
+                if (pair.first == event->key.key) {
+                    if (event->type == SDL_EVENT_KEY_DOWN) {
+                        if (!pair.second.is_held) {
+                            pair.second.just_pressed = true;
+                        }
+                        pair.second.is_held = true;
+                    }
+                    else if (event->type == SDL_EVENT_KEY_UP) {
+                        pair.second.just_released = true;
+                        pair.second.is_held = false;
+                    }
                 }
-                pair.second.is_held = true;
-            }
-            else if (event->type == SDL_EVENT_KEY_UP) {
-                pair.second.just_released = true;
-                pair.second.is_held = false;
             }
         }
-    }
-}
 
-bool engine::controls::isActionJustPressed(const char *action) {
-    auto actions = inputMap.equal_range(action);
-    for (auto i = actions.first; i != actions.second; ++i) {
-        if (i->second.second.just_pressed) {
-            return true;
+        bool isActionJustPressed(const char *action) {
+            auto actions = inputMap.equal_range(action);
+            for (auto i = actions.first; i != actions.second; ++i) {
+                if (i->second.second.just_pressed) {
+                    return true;
+                }
+            }
+            return false;
         }
-    }
-    return false;
-}
 
-void engine::controls::clearFrameStates() {
-    for (auto &[_, pair] : inputMap) {
-        pair.second.just_pressed = false;
-        pair.second.just_released = false;
+        void clearFrameStates() {
+            for (auto &[_, pair] : inputMap) {
+                pair.second.just_pressed = false;
+                pair.second.just_released = false;
+            }
+        }
     }
 }
