@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.0)
-project(gev1_engine)
+project(gev0)
 
 find_package(glm REQUIRED)
 find_package(OpenGL REQUIRED)
