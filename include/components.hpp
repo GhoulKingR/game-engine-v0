@@ -21,10 +21,11 @@ namespace engine {
             float rotate = 0;
 
 #ifdef NDEBUG
-            void inspector();
+            void inspector(const std::string &prefix = "");
 #endif
             glm::mat4 model() const;
 
+            Transform() = default;
             Transform(vec2<float> scale, vec2<float> translate, float rotate);
             Transform(const Transform &) = delete;
             Transform operator=(const Transform &) = delete;
@@ -33,7 +34,9 @@ namespace engine {
         };
 
         struct Sprite {
+            Transform transform;
             uint32_t current_texture = 0;
+            static inline uint32_t spriteCount = 0;
 
             void draw(glm::mat4 &);
 #ifdef NDEBUG
@@ -78,7 +81,7 @@ namespace engine {
             std::vector<ComponentType> _components;
 
         public:
-            Transform transform {{1.0, 1.0}, {0.0, 0.0}, 0};
+            Transform transform;
             void addComponent(ComponentType &&_comp) {
                 _components.emplace_back(std::move(_comp));
             }

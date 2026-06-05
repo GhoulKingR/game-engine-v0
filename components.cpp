@@ -1,10 +1,12 @@
 #include <array>
 #include <components.hpp>
+#include <cstdint>
 #include <filesystem>
 #include <initializer_list>
 #include <objects.hpp>
 
 #include <print>
+#include <string>
 #include <utility>
 #include <vector>
 #include <ranges>
@@ -46,12 +48,18 @@ engine::component::Transform::Transform(
 }
 
 #ifdef NDEBUG
-void engine::component::Transform::inspector() {
-    ImGui::Text("Transform");
+void engine::component::Transform::inspector(const std::string &prefix) {
+    ImGui::Text("%sTransform", prefix.c_str());
     ImGui::Indent();
-        ImGui::DragFloat2("Translate", translate.data());
-        ImGui::DragFloat2("Scale", scale.data(), 0.01f);
-        ImGui::DragFloat("Rotate", &rotate, 1.0f);
+        ImGui::DragFloat2(
+            std::format("{}Translate", prefix).c_str()
+            , translate.data());
+        ImGui::DragFloat2(
+            std::format("{}Scale", prefix).c_str()
+            , scale.data(), 0.01f);
+        ImGui::DragFloat2(
+            std::format("{}Rotate", prefix).c_str()
+            , &rotate, 1.0f);
     ImGui::Unindent();
     ImGui::NewLine();
 }
@@ -93,6 +101,7 @@ glm::mat4 engine::component::Transform::model() const {
 engine::component::Sprite::Sprite(int width, int height,
         std::initializer_list<std::filesystem::path>&& _tex)
 {
+    spriteCount++;
     current_texture = 0;
     size = { width, height };
 
@@ -156,8 +165,9 @@ void engine::component::Sprite::draw(glm::mat4 &model) {
     auto shdr = shader::default_shader();
     shader::use(shdr);
     shader::setMat4(shdr, "aspectRatio", aspectRatio());
-    shader::setMat4(shdr, "model", model);
     shader::setInt(shdr, "useColor", 0);
+
+    shader::setMat4(shdr, "model", model * transform.model());
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -168,8 +178,10 @@ void engine::component::Sprite::draw(glm::mat4 &model) {
 
 #ifdef NDEBUG
 void engine::component::Sprite::inspector() {
-    ImGui::Text("Sprite");
+    ImGui::Text("Sprite %u", spriteCount);
     ImGui::Indent();
+        transform.inspector(std::format("Sprite{} ", spriteCount));
+
         // display paths
         auto _paths = std::ranges::views::zip(std::views::iota(0u), texturePaths);
         for (auto [i, path] : _paths) {
@@ -213,6 +225,7 @@ engine::component::Sprite::~Sprite() {
 engine::component::Sprite::Sprite(Sprite &&_other) {
     size = std::move(_other.size);
     current_texture = _other.current_texture;
+    transform = std::move(_other.transform);
 
     VBO = _other.VBO;
     EBO = _other.EBO;
@@ -230,6 +243,7 @@ engine::component::Sprite&
 engine::component::Sprite::operator=(Sprite &&_other) {
     size = std::move(_other.size);
     current_texture = _other.current_texture;
+    transform = std::move(_other.transform);
 
     VBO = _other.VBO;
     EBO = _other.EBO;
