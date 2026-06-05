@@ -1,11 +1,15 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <initializer_list>
-#include <optional>
+#include <ranges>
+#include <type_traits>
 #include <utility>
 #include <filesystem>
 #include <glm/glm.hpp>
+#include <variant>
+#include <vector>
 
 #include "common.hpp"
 
@@ -61,31 +65,60 @@ namespace engine {
 #endif
         };
 
+        template<typename... Ts>
+        struct overloaded : Ts... {
+            using Ts::operator()...;
+        };
+        template<typename T>
+        concept TComponentType = std::is_same_v<T, Sprite>
+            || std::is_same_v<T, Physics>;
+
+        using ComponentType = std::variant<Sprite, Physics>;
         class Components {
-            std::optional<Transform> _transform;
-            std::optional<Sprite> _sprite;
-            std::optional<Physics> _physics;
+            std::vector<ComponentType> _components;
 
         public:
-            void addComponent(Transform &&t) {
-                _transform.emplace(std::move(t));
-            }
-            void addComponent(Sprite &&s) {
-                _sprite.emplace(std::move(s));
-            }
-            void addComponent(Physics &&p) {
-                _physics.emplace(std::move(p));
+            Transform transform {{1.0, 1.0}, {0.0, 0.0}, 0};
+            void addComponent(ComponentType &&_comp) {
+                _components.emplace_back(std::move(_comp));
             }
 
-            auto &transform() { return _transform; }
-            auto &sprite() { return _sprite; }
-            auto &physics() { return _physics; }
+            const auto &all() const {
+                return _components;
+            }
+
+            template<TComponentType T>
+            auto get() {
+                return _components
+                    | std::ranges::views::filter([](auto &_c){
+                          return std::holds_alternative<T>(_c);
+                      })
+                    | std::ranges::views::transform([](auto &_c){
+                          return std::reference_wrapper(std::get<T>(_c));
+                      });
+            }
+
+            void draw() {
+                auto model = transform.model();
+                for (auto &comp : _components) {
+                    std::visit(overloaded{
+                        [](const auto &) {},
+                        [&model](Sprite &_c) {
+                            _c.draw(model);
+                        }
+                    }, comp);
+                }
+            }
 
 #ifdef NDEBUG
             void inspector() {
-                if (_transform.has_value()) _transform->inspector();
-                if (_sprite.has_value()) _sprite->inspector();
-                if (_physics.has_value()) _physics->inspector();
+                transform.inspector();
+                for (auto &comp : _components) {
+                    std::visit(
+                        [](auto &_c) { _c.inspector(); },
+                        comp
+                    );
+                }
             }
 #endif
         };

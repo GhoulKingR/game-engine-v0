@@ -20,12 +20,10 @@ namespace engine {
     }
 
     void Object::_draw() {
-        auto model = components.transform().has_value()
-            ? components.transform()->model()
-            : glm::identity<glm::mat4>();
+        auto model = components.transform.model();
 
-        if (components.sprite().has_value()) {
-            components.sprite()->draw(model);
+        for (auto sprite : components.get<component::Sprite>()) {
+            sprite.get().draw(model);
         }
     }
 
