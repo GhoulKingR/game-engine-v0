@@ -6,7 +6,6 @@
 #include <objects.hpp>
 
 #include <print>
-#include <string>
 #include <utility>
 #include <vector>
 #include <ranges>
@@ -14,6 +13,10 @@
 #include <imgui/imgui.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#ifdef NDEBUG
+#include <string>
+#endif
 
 #include "engine.hpp"
 #include "shaders/shaders.hpp"

@@ -1,4 +1,7 @@
+#ifdef NDEBUG
 #include "imgui/imgui.h"
+#endif
+
 #include "objects.hpp"
 #include <scene.hpp>
 
