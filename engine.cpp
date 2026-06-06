@@ -59,14 +59,12 @@ static void constructRenderTexture() {
     glBindFramebuffer(GL_FRAMEBUFFER, gameview.FBO);
     glGenTextures(1, &gameview.viewTexture);
     glBindTexture(GL_TEXTURE_2D, gameview.viewTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, viewport.x, viewport.y, 0,
-            GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, viewport.x, viewport.y, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-            GL_TEXTURE_2D, gameview.viewTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gameview.viewTexture, 0);
 
     // generate multisample frame buffer object to render to
     glGenFramebuffers(1, &gameview.mFBO);
@@ -75,18 +73,14 @@ static void constructRenderTexture() {
     // color buffer
     glGenRenderbuffers(1, &gameview.RBO1);
     glBindRenderbuffer(GL_RENDERBUFFER, gameview.RBO1);
-    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_RGB,
-            viewport.x, viewport.y);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-            GL_RENDERBUFFER, gameview.RBO1);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_RGB, viewport.x, viewport.y);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, gameview.RBO1);
 
     // depth and stencil buffer
     glGenRenderbuffers(1, &gameview.RBO2);
     glBindRenderbuffer(GL_RENDERBUFFER, gameview.RBO2);
-    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8,
-            viewport.x, viewport.y);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-            GL_RENDERBUFFER, gameview.RBO2);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, viewport.x, viewport.y);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, gameview.RBO2);
 
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -95,17 +89,14 @@ static void constructRenderTexture() {
 
 void engine::init(const char *_title, uint32_t _width, uint32_t _height) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        std::println(stderr,
-                "Error :: Failed to initialize SDL: {}", SDL_GetError());
+        std::println(stderr, "Error :: Failed to initialize SDL: {}", SDL_GetError());
         exit(EXIT_FAILURE);
     }
 
 #if __APPLE__
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
-            SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 #endif
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
-            SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
@@ -117,23 +108,19 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height) {
 
 #ifdef NDEBUG
     window = SDL_CreateWindow(std::format("{} (Debug)", _title).c_str(),
-            actual.x, actual.y, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+        actual.x, actual.y, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 #else
     window = SDL_CreateWindow(_title, _width, _height, SDL_WINDOW_OPENGL);
 #endif
     if (window == nullptr) {
-        std::println(stderr,
-                "Error :: Failed to initialize SDl window: {}",
-                SDL_GetError());
+        std::println(stderr, "Error :: Failed to initialize SDl window: {}", SDL_GetError());
         SDL_Quit();
         exit(EXIT_FAILURE);
     }
 
     ctx = SDL_GL_CreateContext(window);
     if (ctx == nullptr) {
-        std::println(stderr,
-                "Error :: Failed to create GL context: {}",
-                SDL_GetError());
+        std::println(stderr, "Error :: Failed to create GL context: {}", SDL_GetError());
         SDL_DestroyWindow(window);
         SDL_Quit();
         exit(EXIT_FAILURE);
@@ -143,11 +130,9 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height) {
     SDL_GL_SetSwapInterval(1);
     SDL_ShowWindow(window);
 
-    if (!gladLoadGLLoader(
-                reinterpret_cast<GLADloadproc>(SDL_GL_GetProcAddress)))
+    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(SDL_GL_GetProcAddress)))
     {
-        std::println(stderr,
-                "Error :: Failed to initialize GLAD");
+        std::println(stderr, "Error :: Failed to initialize GLAD");
         SDL_GL_DestroyContext(ctx);
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -204,13 +189,12 @@ static void guiLoop() {
     }
 
     // central game view
-    ImGuiWindowFlags gvFlags = ImGuiWindowFlags_NoCollapse
-        | ImGuiWindowFlags_NoResize;
+    ImGuiWindowFlags gvFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
     ImGui::Begin("Game view", nullptr, gvFlags);
-    ImGui::Image(reinterpret_cast<void *>(
-                static_cast<intptr_t>(gameview.viewTexture)),
-            ImVec2(viewport.x, viewport.y),
-            ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::Image(
+        reinterpret_cast<void *>(static_cast<intptr_t>(gameview.viewTexture)),
+        ImVec2(viewport.x, viewport.y),
+        ImVec2(0, 1), ImVec2(1, 0));
     ImGui::End();
 
     currentScene->_inspector();
@@ -262,7 +246,7 @@ static void processInput() {
             running = false;
         }
         else if (_event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-                _event.window.windowID == SDL_GetWindowID(window)) {
+                 _event.window.windowID == SDL_GetWindowID(window)) {
             running = false;
         }
         else if (_event.type == SDL_EVENT_WINDOW_RESIZED) {
@@ -271,7 +255,7 @@ static void processInput() {
             glViewport(0, 0, actual.x, actual.y);
         }
         else if(_event.type == SDL_EVENT_KEY_UP) {
-            if (_event.key.key == SDLK_0) {
+            if (_event.key.key == SDLK_BACKSLASH) {
                 paused = !paused;
             }
         }
@@ -303,9 +287,6 @@ void engine::start() {
 glm::mat4 engine::aspectRatio() {
     auto pixelSize = 1.0f / glm::vec2(viewport.x, viewport.y);
     auto scale = glm::identity<glm::mat4>();
-    // scale = glm::translate(
-    //     scale, glm::vec3(_view_translate.x, _view_translate.y, 0.0));
-    // scale = glm::scale(scale, glm::vec3(_scale, _scale, 1.0));
     scale = glm::scale(scale, glm::vec3(
         pixelSize.x * 2.0f, pixelSize.y * 2.0f, 1.0));
     return scale;

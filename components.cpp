@@ -52,19 +52,29 @@ engine::component::Transform::Transform(
 
 #ifdef NDEBUG
 void engine::component::Transform::inspector(const std::string &prefix) {
-    ImGui::Text("%sTransform", prefix.c_str());
-    ImGui::Indent();
-        ImGui::DragFloat2(
-            std::format("{}Translate", prefix).c_str()
-            , translate.data());
-        ImGui::DragFloat2(
-            std::format("{}Scale", prefix).c_str()
-            , scale.data(), 0.01f);
-        ImGui::DragFloat2(
-            std::format("{}Rotate", prefix).c_str()
-            , &rotate, 1.0f);
-    ImGui::Unindent();
-    ImGui::NewLine();
+    if (prefix.empty()) {
+        ImGui::Text("Transform");
+        ImGui::Indent();
+            ImGui::DragFloat2("Translate", translate.data());
+            ImGui::DragFloat2("Scale", scale.data(), 0.01f);
+            ImGui::DragFloat2("Rotate ({})", &rotate, 1.0f);
+        ImGui::Unindent();
+        ImGui::NewLine();
+    } else {
+        ImGui::Text("Transform (%s)", prefix.c_str());
+        ImGui::Indent();
+            ImGui::DragFloat2(
+                std::format("Translate ({})", prefix).c_str(),
+                translate.data());
+            ImGui::DragFloat2(
+                std::format("Scale ({})", prefix).c_str(),
+                scale.data(), 0.01f);
+            ImGui::DragFloat2(
+                std::format("Rotate ({})", prefix).c_str(),
+                &rotate, 1.0f);
+        ImGui::Unindent();
+        ImGui::NewLine();
+    }
 }
 #endif
 
@@ -87,19 +97,6 @@ glm::mat4 engine::component::Transform::model() const {
     model = glm::scale(model, glm::vec3(scale.x, scale.y, 1.0f));
     return model;
 }
-
-// std::pair<const char *, toml::table>
-// engine::component::Transform::to_table() const {
-//     return {
-//         "transform",
-//         toml::table{
-//             {"translate", toml::array{translate[0], translate[1]}},
-//             {"scale", toml::array{scale[0], scale[1]}},
-//             {"rotate", rotate},
-//         }
-//     };
-// }
-
 
 engine::component::Sprite::Sprite(int width, int height,
         std::initializer_list<std::filesystem::path>&& _tex)
@@ -180,15 +177,15 @@ void engine::component::Sprite::draw(glm::mat4 &model) {
 
 #ifdef NDEBUG
 void engine::component::Sprite::inspector(uint32_t id) {
-    ImGui::Text("Sprite %u", id);
+    ImGui::Text("Sprite #%u", id);
     ImGui::Indent();
-        transform.inspector(std::format("Sprite {} ", id));
+        transform.inspector(std::format("Sprite #{} ", id));
 
         // display paths
         auto _paths = std::ranges::views::zip(std::views::iota(0u), texturePaths);
         for (auto [i, path] : _paths) {
-            auto name = std::format("#{}. {} - {}",
-                id, i, path.filename().c_str());
+            auto name = std::format("{} (#{})",
+                path.filename().c_str(), id);
             if (ImGui::Selectable(name.c_str(), i == current_texture)) {
                 current_texture = i;
             }
@@ -204,26 +201,6 @@ engine::component::Sprite::~Sprite() {
     if (VAO != 0) glDeleteVertexArrays(1, &VAO);
     if (textures.size() > 0) glDeleteTextures(textures.size(), textures.data());
 }
-
-// std::pair<const char *, toml::table> comp::Sprite::to_table() const {
-//     auto paths = texturePaths
-//         |   std::views::transform([](auto p) {
-//                 return std::filesystem::proximate(p).string();
-//             });
-//     toml::array _textures;
-//     for (const auto &p : paths) {
-//         _textures.push_back(p);
-//     }
-//
-//     return {
-//         "sprite",
-//         toml::table{
-//             {"current", current_texture},
-//             {"size", toml::array{size[0], size[1]}},
-//             {"textures", _textures}
-//         }
-//     };
-// }
 
 engine::component::Sprite::Sprite(Sprite &&_other) {
     size = std::move(_other.size);
@@ -262,8 +239,8 @@ engine::component::Sprite::operator=(Sprite &&_other) {
 }
 
 #ifdef NDEBUG
-void engine::component::Physics::inspector() {
-    ImGui::Text("Physics");
+void engine::component::Physics::inspector(uint32_t id) {
+    ImGui::Text("Physics #%u", id);
     ImGui::Indent();
         ImGui::DragFloat("gravity", &gravity, 0.01f);
     ImGui::Unindent();

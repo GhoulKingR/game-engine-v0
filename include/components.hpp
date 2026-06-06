@@ -21,6 +21,11 @@ struct overloaded : Ts... {
 template<typename T>
 concept Drawable = requires (T a) { a.draw(); };
 
+template<typename T>
+concept Inspectable = requires (T a, uint32_t val) {
+    a.inspector(val);
+};
+
 namespace engine {
     namespace component {
         struct Transform {
@@ -71,7 +76,7 @@ namespace engine {
             float gravity = 9.8;
 
 #ifdef NDEBUG
-            void inspector();
+            void inspector(uint32_t);
 #endif
         };
 
@@ -118,18 +123,13 @@ namespace engine {
 #ifdef NDEBUG
             void inspector() {
                 transform.inspector();
-
                 uint32_t i = 0;
                 for (auto &comp : _components) {
-                    std::visit(overloaded{
-                            [](auto &_c) { _c.inspector(); },
-                            [&i](Sprite &_s){
-                                i++;
-                                _s.inspector(i);
-                            }
-                        },
-                        comp
-                    );
+                    std::visit(
+                        [&i](Inspectable auto &_c){
+                            i++;
+                            _c.inspector(i);
+                        }, comp);
                 }
             }
 #endif
