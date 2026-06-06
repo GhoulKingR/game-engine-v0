@@ -20,18 +20,21 @@ namespace engine {
     }
 
     void Object::_draw() {
-        auto model = components.transform.model();
+        auto model = transform.model();
 
-        for (auto sprite : components.get<component::Sprite>()) {
-            sprite.get().draw(model);
+        for (auto &_comp : components) {
+            _comp->draw(model);
         }
     }
 
 #ifdef NDEBUG
     void Object::_inspector() {
+        uint32_t i = 0;
         ImGui::Begin("Inspector");
-            ImGui::SeparatorText(name.c_str());
-            components.inspector();
+        ImGui::SeparatorText(name.c_str());
+        for (auto &_comp : components) {
+            _comp->inspector(++i);
+        }
         ImGui::End();
     }
 #endif

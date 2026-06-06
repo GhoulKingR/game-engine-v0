@@ -11,16 +11,18 @@ namespace engine {
 
     protected:
         std::string name;
-        component::Components components;
+        std::vector<std::unique_ptr<component::Component>> components;
 
         template<typename T> std::optional<T>
         getComponent(const char *);
 
     public:
-        Object(const char *name = nullptr);
+        component::Transform transform;
         virtual void update(float) {}
         void _draw();
-        component::Components &getComponents() { return components; }
+        auto &getComponents() { return components; }
+        Object(const char *name = nullptr);
+        ~Object() = default;
 
 #ifdef NDEBUG
         std::string getName() const { return name; }

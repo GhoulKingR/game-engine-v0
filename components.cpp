@@ -78,17 +78,17 @@ void engine::component::Transform::inspector(const std::string &prefix) {
 }
 #endif
 
-engine::component::Transform::Transform(Transform &&_other) {
-    scale = std::move(_other.scale);
-    translate = std::move(_other.translate);
-    rotate = std::move(_other.rotate);
-}
+// engine::component::Transform::Transform(Transform &&_other) {
+//     scale = std::move(_other.scale);
+//     translate = std::move(_other.translate);
+//     rotate = std::move(_other.rotate);
+// }
 
-void engine::component::Transform::operator=(Transform &&_other) {
-    scale = std::move(_other.scale);
-    translate = std::move(_other.translate);
-    rotate = std::move(_other.rotate);
-}
+// void engine::component::Transform::operator=(Transform &&_other) {
+//     scale = std::move(_other.scale);
+//     translate = std::move(_other.translate);
+//     rotate = std::move(_other.rotate);
+// }
 
 glm::mat4 engine::component::Transform::model() const {
     auto model = glm::identity<glm::mat4>();
@@ -99,14 +99,14 @@ glm::mat4 engine::component::Transform::model() const {
 }
 
 engine::component::Sprite::Sprite(int width, int height,
-        std::initializer_list<std::filesystem::path>&& _tex)
+    std::vector<std::filesystem::path> _tex)
 {
     current_texture = 0;
     size = { width, height };
 
     // load textures
     stbi_set_flip_vertically_on_load(true);
-    texturePaths = _tex;
+    texturePaths = std::move(_tex);
 
     std::vector<uint32_t> tx(texturePaths.size(), 0);
     glGenTextures(tx.size(), tx.data());
@@ -200,42 +200,6 @@ engine::component::Sprite::~Sprite() {
     if (EBO != 0) glDeleteBuffers(1, &EBO);
     if (VAO != 0) glDeleteVertexArrays(1, &VAO);
     if (textures.size() > 0) glDeleteTextures(textures.size(), textures.data());
-}
-
-engine::component::Sprite::Sprite(Sprite &&_other) {
-    size = std::move(_other.size);
-    current_texture = _other.current_texture;
-    transform = std::move(_other.transform);
-
-    VBO = _other.VBO;
-    EBO = _other.EBO;
-    VAO = _other.VAO;
-    _other.VBO = 0;
-    _other.VAO = 0;
-    _other.EBO = 0;
-
-    indexCount = _other.indexCount;
-    textures = std::move(_other.textures);
-    texturePaths = std::move(_other.texturePaths);
-}
-
-engine::component::Sprite&
-engine::component::Sprite::operator=(Sprite &&_other) {
-    size = std::move(_other.size);
-    current_texture = _other.current_texture;
-    transform = std::move(_other.transform);
-
-    VBO = _other.VBO;
-    EBO = _other.EBO;
-    VAO = _other.VAO;
-    _other.VBO = 0;
-    _other.VAO = 0;
-    _other.EBO = 0;
-
-    indexCount = _other.indexCount;
-    textures = std::move(_other.textures);
-    texturePaths = std::move(_other.texturePaths);
-    return *this;
 }
 
 #ifdef NDEBUG

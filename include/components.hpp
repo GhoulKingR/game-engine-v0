@@ -1,30 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include <functional>
-#include <initializer_list>
-#include <ranges>
-#include <type_traits>
-#include <utility>
 #include <filesystem>
 #include <glm/glm.hpp>
-#include <variant>
 #include <vector>
 
 #include "common.hpp"
-
-template<typename... Ts>
-struct overloaded : Ts... {
-    using Ts::operator()...;
-};
-
-template<typename T>
-concept Drawable = requires (T a) { a.draw(); };
-
-template<typename T>
-concept Inspectable = requires (T a, uint32_t val) {
-    a.inspector(val);
-};
 
 namespace engine {
     namespace component {
@@ -42,25 +23,32 @@ namespace engine {
             Transform(vec2<float> scale, vec2<float> translate, float rotate);
             Transform(const Transform &) = delete;
             Transform operator=(const Transform &) = delete;
-            Transform(Transform &&);
-            void operator=(Transform &&);
+            Transform(Transform &&) = delete;
+            void operator=(Transform &&) = delete;
         };
 
-        struct Sprite {
+        struct Component {
+            virtual void draw(glm::mat4 &) {}
+#ifdef NDEBUG
+            virtual void inspector(uint32_t) {}
+#endif
+            virtual ~Component() = default;
+        };
+
+        struct Sprite : public Component {
             Transform transform;
             uint32_t current_texture = 0;
 
-            void draw(glm::mat4 &);
+            void draw(glm::mat4 &) override;
 #ifdef NDEBUG
-            void inspector(uint32_t);
+            void inspector(uint32_t) override;
 #endif
 
             Sprite(const Sprite &) = delete;
             Sprite operator=(const Sprite &) = delete;
-            Sprite(Sprite &&);
-            Sprite& operator=(Sprite &&);
-            Sprite(int w, int h,
-                std::initializer_list<std::filesystem::path>&&);
+            Sprite(Sprite &&) = delete;
+            Sprite& operator=(Sprite &&) = delete;
+            Sprite(int w, int h, std::vector<std::filesystem::path>);
             ~Sprite();
 
         private:
@@ -72,66 +60,11 @@ namespace engine {
             std::vector<std::filesystem::path> texturePaths;
         };
 
-        struct Physics {
+        struct Physics : public Component {
             float gravity = 9.8;
 
 #ifdef NDEBUG
             void inspector(uint32_t);
-#endif
-        };
-
-        template<typename T>
-        concept TComponentType = std::is_same_v<T, Sprite>
-            || std::is_same_v<T, Physics>;
-        using ComponentType = std::variant<Sprite, Physics>;
-        class Components {
-            std::vector<ComponentType> _components;
-
-        public:
-            Transform transform;
-            void addComponent(ComponentType &&_comp) {
-                _components.emplace_back(std::move(_comp));
-            }
-
-            const auto &all() const {
-                return _components;
-            }
-
-            template<TComponentType T>
-            auto get() {
-                return _components
-                    | std::ranges::views::filter([](auto &_c){
-                          return std::holds_alternative<T>(_c);
-                      })
-                    | std::ranges::views::transform([](auto &_c){
-                          return std::reference_wrapper(std::get<T>(_c));
-                      });
-            }
-
-            void draw() {
-                auto model = transform.model();
-                for (auto &comp : _components) {
-                    std::visit(overloaded{
-                        [](const auto &) {},
-                        [&model](Drawable auto &_c) {
-                            _c.draw(model);
-                        }
-                    }, comp);
-                }
-            }
-
-#ifdef NDEBUG
-            void inspector() {
-                transform.inspector();
-                uint32_t i = 0;
-                for (auto &comp : _components) {
-                    std::visit(
-                        [&i](Inspectable auto &_c){
-                            i++;
-                            _c.inspector(i);
-                        }, comp);
-                }
-            }
 #endif
         };
     }
