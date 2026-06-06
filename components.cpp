@@ -57,7 +57,7 @@ void engine::component::Transform::inspector(const std::string &prefix) {
         ImGui::Indent();
             ImGui::DragFloat2("Translate", translate.data());
             ImGui::DragFloat2("Scale", scale.data(), 0.01f);
-            ImGui::DragFloat2("Rotate ({})", &rotate, 1.0f);
+            ImGui::DragFloat2("Rotate", &rotate, 1.0f);
         ImGui::Unindent();
         ImGui::NewLine();
     } else {
