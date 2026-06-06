@@ -28,6 +28,7 @@ namespace engine {
         };
 
         struct Component {
+            bool hidden = false;
             virtual void draw(glm::mat4 &) {}
 #ifdef NDEBUG
             virtual void inspector(uint32_t) {}

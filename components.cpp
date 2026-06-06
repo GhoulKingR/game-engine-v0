@@ -161,24 +161,26 @@ engine::component::Sprite::Sprite(int width, int height,
 }
 
 void engine::component::Sprite::draw(glm::mat4 &model) {
-    auto shdr = shader::default_shader();
-    shader::use(shdr);
-    shader::setMat4(shdr, "aspectRatio", aspectRatio());
-    shader::setInt(shdr, "useColor", 0);
+    if (!hidden) {
+        auto shdr = shader::default_shader();
+        shader::use(shdr);
+        shader::setMat4(shdr, "aspectRatio", aspectRatio());
+        shader::setInt(shdr, "useColor", 0);
+        shader::setMat4(shdr, "model", model * transform.model());
 
-    shader::setMat4(shdr, "model", model * transform.model());
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBindTexture(GL_TEXTURE_2D, textures.at(current_texture));
-    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBindTexture(GL_TEXTURE_2D, textures.at(current_texture));
+        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+    }
 }
 
 #ifdef NDEBUG
 void engine::component::Sprite::inspector(uint32_t id) {
     ImGui::Text("Sprite #%u", id);
     ImGui::Indent();
+        ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
         transform.inspector(std::format("Sprite #{} ", id));
 
         // display paths
@@ -206,7 +208,7 @@ engine::component::Sprite::~Sprite() {
 void engine::component::Physics::inspector(uint32_t id) {
     ImGui::Text("Physics #%u", id);
     ImGui::Indent();
-        ImGui::DragFloat("gravity", &gravity, 0.01f);
+    ImGui::DragFloat("gravity", &gravity, 0.01f);
     ImGui::Unindent();
     ImGui::NewLine();
 }

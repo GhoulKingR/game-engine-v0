@@ -176,9 +176,11 @@ static void guiLoop() {
 
     // main menu bar
     static bool metrics = false;
+    static bool demo_window = false;
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("Window")) {
             ImGui::MenuItem("Show metrics", nullptr, &metrics);
+            ImGui::MenuItem("Show ImGui demo window", nullptr, &demo_window);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -186,6 +188,9 @@ static void guiLoop() {
 
     if (metrics) {
         ImGui::ShowMetricsWindow();
+    }
+    if (demo_window) {
+        ImGui::ShowDemoWindow();
     }
 
     // central game view

@@ -32,6 +32,7 @@ namespace engine {
         uint32_t i = 0;
         ImGui::Begin("Inspector");
         ImGui::SeparatorText(name.c_str());
+        transform.inspector();
         for (auto &_comp : components) {
             _comp->inspector(++i);
         }
