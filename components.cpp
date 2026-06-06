@@ -78,18 +78,6 @@ void engine::component::Transform::inspector(const std::string &prefix) {
 }
 #endif
 
-// engine::component::Transform::Transform(Transform &&_other) {
-//     scale = std::move(_other.scale);
-//     translate = std::move(_other.translate);
-//     rotate = std::move(_other.rotate);
-// }
-
-// void engine::component::Transform::operator=(Transform &&_other) {
-//     scale = std::move(_other.scale);
-//     translate = std::move(_other.translate);
-//     rotate = std::move(_other.rotate);
-// }
-
 glm::mat4 engine::component::Transform::model() const {
     auto model = glm::identity<glm::mat4>();
     model = glm::translate(model, glm::vec3(translate.x, translate.y, 0.0));
@@ -213,3 +201,32 @@ void engine::component::Physics::inspector(uint32_t id) {
     ImGui::NewLine();
 }
 #endif
+
+void engine::component::Timer::setTimeout(
+    std::function<void()> callback, uint32_t duration_ms,
+    uint32_t times)
+{
+    target = std::chrono::system_clock::now() +
+             std::chrono::milliseconds(duration_ms);
+    lambda = callback;
+    count = times;
+    _duration = duration_ms;
+}
+
+void engine::component::Timer::draw(glm::mat4 &) {
+    if (count > 0 && lambda != nullptr) {
+        auto now = std::chrono::system_clock::now();
+        if (now >= target) {
+            count--;
+            lambda();
+
+            if (count == 0) {
+                lambda = nullptr;
+                _duration = 0;
+            } else {
+                target = std::chrono::system_clock::now() +
+                         std::chrono::milliseconds(_duration);
+            }
+        }
+    }
+}

@@ -1,8 +1,11 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <glm/glm.hpp>
+#include <unistd.h>
 #include <vector>
 
 #include "common.hpp"
@@ -59,6 +62,16 @@ namespace engine {
                      indexCount = 0;
             std::vector<uint32_t> textures;
             std::vector<std::filesystem::path> texturePaths;
+        };
+
+        struct Timer : public Component {
+            void setTimeout(std::function<void()>, uint32_t duration_ms, uint32_t times = 1);
+            void draw(glm::mat4 &) override; // hijack `draw` function for poll
+
+        private:
+            std::chrono::time_point<std::chrono::system_clock> target;
+            uint32_t count = 0, _duration = 0;
+            std::function<void()> lambda = nullptr;
         };
 
         struct Physics : public Component {
