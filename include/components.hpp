@@ -13,6 +13,14 @@
 
 #include "common.hpp"
 
+template<typename... Ts>
+struct overloaded : Ts... {
+    using Ts::operator()...;
+};
+
+template<typename T>
+concept Drawable = requires (T a) { a.draw(); };
+
 namespace engine {
     namespace component {
         struct Transform {
@@ -67,14 +75,9 @@ namespace engine {
 #endif
         };
 
-        template<typename... Ts>
-        struct overloaded : Ts... {
-            using Ts::operator()...;
-        };
         template<typename T>
         concept TComponentType = std::is_same_v<T, Sprite>
             || std::is_same_v<T, Physics>;
-
         using ComponentType = std::variant<Sprite, Physics>;
         class Components {
             std::vector<ComponentType> _components;
@@ -105,7 +108,7 @@ namespace engine {
                 for (auto &comp : _components) {
                     std::visit(overloaded{
                         [](const auto &) {},
-                        [&model](Sprite &_c) {
+                        [&model](Drawable auto &_c) {
                             _c.draw(model);
                         }
                     }, comp);
