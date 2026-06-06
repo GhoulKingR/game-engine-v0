@@ -13,7 +13,7 @@ namespace engine {
     Object::Object(const char *name) {
         if (name == nullptr) {
             objectCount++;
-            this->name = std::format("Object #{}", name);
+            this->name = std::format("Object #{}", objectCount);
         } else {
             this->name = name;
         }
