@@ -17,8 +17,10 @@ static std::pmr::multimap<
 
 namespace engine {
     namespace controls {
-        void registerAction(const char *action, SDL_Keycode key_code) {
-            inputMap.insert({action, {key_code, KeyState{}}});
+        void registerAction(std::string action, SDL_Keycode key_code) {
+            inputMap.insert({
+                std::move(action),
+                {key_code, KeyState{}}});
         }
 
         void update(SDL_Event *event) {

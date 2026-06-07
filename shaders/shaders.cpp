@@ -81,17 +81,18 @@ void engine::shader::cleanup() {
 
 void engine::shader::use(uint32_t program) { glUseProgram(program); }
 
-void engine::shader::setMat4(uint32_t program, const char *name,
-                             const glm::mat4 &data) {
+void engine::shader::setMat4(uint32_t program, const char *name, glm::mat4 data) {
+    assert(name != nullptr);
     glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE,
                        glm::value_ptr(data));
 }
 
 void engine::shader::setInt(uint32_t program, const char *name, int data) {
+    assert(name != nullptr);
     glUniform1i(glGetUniformLocation(program, name), data);
 }
 
-void engine::shader::setVec3(uint32_t program, const char *name,
-                             const glm::vec3 &data) {
+void engine::shader::setVec3(uint32_t program, const char *name, glm::vec3 data) {
+    assert(name != nullptr);
     glUniform3f(glGetUniformLocation(program, name), data.x, data.y, data.z);
 }

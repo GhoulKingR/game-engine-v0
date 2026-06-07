@@ -1,6 +1,7 @@
 #include "common.hpp"
 #include "controls.hpp"
 #include "shaders/shaders.hpp"
+#include <cassert>
 #include <chrono>
 #include <engine.hpp>
 #include <scene.hpp>
@@ -88,6 +89,7 @@ static void constructRenderTexture() {
 #endif
 
 void engine::init(const char *_title, uint32_t _width, uint32_t _height) {
+    assert(_title != nullptr);
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         std::println(stderr, "Error :: Failed to initialize SDL: {}", SDL_GetError());
         exit(EXIT_FAILURE);
