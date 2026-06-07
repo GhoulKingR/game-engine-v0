@@ -28,11 +28,11 @@ namespace engine {
         }
 
         template<ScalarType Tp>
-        vec2 operator*(const Tp &val) {
+        vec2 operator*(const Tp &val) const {
             return vec2(x * val, y * val);
         }
 
-        vec2 operator-(const vec2<T> &val) {
+        vec2 operator-(const vec2<T> &val) const {
             return vec2(x - val.x, y - val.y);
         }
 
@@ -42,7 +42,7 @@ namespace engine {
             return n;
         }
 
-        vec2 operator+(const vec2<T> &val) {
+        vec2 operator+(const vec2<T> &val) const {
             return vec2(x + val.x, y + val.y);
         }
 
