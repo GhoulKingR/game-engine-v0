@@ -51,8 +51,8 @@ engine::component::Transform::Transform(
 }
 
 #ifdef NDEBUG
-void engine::component::Transform::inspector(const std::string &prefix) {
-    if (prefix.empty()) {
+void engine::component::Transform::inspector(const char *prefix) {
+    if (prefix == nullptr) {
         ImGui::Text("Transform");
         ImGui::Indent();
             ImGui::DragFloat2("Translate", translate.data());
@@ -61,7 +61,7 @@ void engine::component::Transform::inspector(const std::string &prefix) {
         ImGui::Unindent();
         ImGui::NewLine();
     } else {
-        ImGui::Text("Transform (%s)", prefix.c_str());
+        ImGui::Text("Transform (%s)", prefix);
         ImGui::Indent();
             ImGui::DragFloat2(
                 std::format("Translate ({})", prefix).c_str(),
@@ -148,7 +148,7 @@ engine::component::Sprite::Sprite(int width, int height,
     indexCount = indices.size();
 }
 
-void engine::component::Sprite::draw(glm::mat4 &model) {
+void engine::component::Sprite::draw(glm::mat4 model) {
     if (!hidden) {
         auto shdr = shader::default_shader();
         shader::use(shdr);
@@ -169,7 +169,7 @@ void engine::component::Sprite::inspector(uint32_t id) {
     ImGui::Text("Sprite #%u", id);
     ImGui::Indent();
         ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
-        transform.inspector(std::format("Sprite #{} ", id));
+        transform.inspector(std::format("Sprite #{} ", id).c_str());
 
         // display paths
         auto _paths = std::ranges::views::zip(std::views::iota(0u), texturePaths);
@@ -213,7 +213,7 @@ void engine::component::Timer::setTimeout(
     _duration = duration_ms;
 }
 
-void engine::component::Timer::draw(glm::mat4 &) {
+void engine::component::Timer::draw(glm::mat4) {
     if (count > 0 && lambda != nullptr) {
         auto now = std::chrono::system_clock::now();
         if (now >= target) {

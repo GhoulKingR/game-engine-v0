@@ -18,7 +18,7 @@ namespace engine {
             float rotate = 0;
 
 #ifdef NDEBUG
-            void inspector(const std::string &prefix = "");
+            void inspector(const char *prefix = nullptr);
 #endif
             glm::mat4 model() const;
 
@@ -32,7 +32,7 @@ namespace engine {
 
         struct Component {
             bool hidden = false;
-            virtual void draw(glm::mat4 &) {}
+            virtual void draw(glm::mat4) {}
 #ifdef NDEBUG
             virtual void inspector(uint32_t) {}
 #endif
@@ -43,7 +43,7 @@ namespace engine {
             Transform transform;
             uint32_t current_texture = 0;
 
-            void draw(glm::mat4 &) override;
+            void draw(glm::mat4) override;
 #ifdef NDEBUG
             void inspector(uint32_t) override;
 #endif
@@ -66,7 +66,7 @@ namespace engine {
 
         struct Timer : public Component {
             void setTimeout(std::function<void()>, uint32_t duration_ms, uint32_t times = 1);
-            void draw(glm::mat4 &) override; // hijack `draw` function for poll
+            void draw(glm::mat4) override; // hijack `draw` function for poll
 
         private:
             std::chrono::time_point<std::chrono::system_clock> target;

@@ -22,7 +22,7 @@ namespace engine {
     void Object::_draw() {
         auto model = transform.model();
 
-        for (auto &_comp : components) {
+        for (auto _comp : components) {
             _comp->draw(model);
         }
     }
@@ -33,7 +33,7 @@ namespace engine {
         ImGui::Begin("Inspector");
         ImGui::SeparatorText(name.c_str());
         transform.inspector();
-        for (auto &_comp : components) {
+        for (auto _comp : components) {
             _comp->inspector(++i);
         }
         ImGui::End();
