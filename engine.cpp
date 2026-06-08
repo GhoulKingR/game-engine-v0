@@ -129,7 +129,7 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height) {
     }
 
     SDL_GL_MakeCurrent(window, ctx);
-    SDL_GL_SetSwapInterval(1);
+    SDL_GL_SetSwapInterval(1);    // v-sync
     SDL_ShowWindow(window);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(SDL_GL_GetProcAddress)))
@@ -272,7 +272,12 @@ static void processInput() {
             glViewport(0, 0, viewport.x, viewport.y);
         }
 #endif
-        engine::controls::update(&_event);
+
+        if (_event.type == SDL_EVENT_KEY_DOWN ||
+            _event.type == SDL_EVENT_KEY_UP)
+        {
+            engine::controls::update(_event);
+        }
     }
 }
 

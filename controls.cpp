@@ -1,3 +1,4 @@
+#include <cassert>
 #include <controls.hpp>
 #include <map>
 #include <string>
@@ -23,20 +24,16 @@ namespace engine {
                 {key_code, KeyState{}}});
         }
 
-        void update(SDL_Event *event) {
-            if (event->type != SDL_EVENT_KEY_DOWN && event->type != SDL_EVENT_KEY_UP) {
-                return;
-            }
-
+        void update(SDL_Event &event) {
             for (auto &[_, pair] : inputMap) {
-                if (pair.first == event->key.key) {
-                    if (event->type == SDL_EVENT_KEY_DOWN) {
+                if (pair.first == event.key.key) {
+                    if (event.type == SDL_EVENT_KEY_DOWN) {
                         if (!pair.second.is_held) {
                             pair.second.just_pressed = true;
                         }
                         pair.second.is_held = true;
                     }
-                    else if (event->type == SDL_EVENT_KEY_UP) {
+                    else if (event.type == SDL_EVENT_KEY_UP) {
                         pair.second.just_released = true;
                         pair.second.is_held = false;
                     }
@@ -45,6 +42,7 @@ namespace engine {
         }
 
         bool isActionJustPressed(const char *action) {
+            assert(action != nullptr);
             auto actions = inputMap.equal_range(action);
             for (auto i = actions.first; i != actions.second; ++i) {
                 if (i->second.second.just_pressed) {
