@@ -101,9 +101,15 @@ engine::component::Sprite::Sprite(int width, int height,
     for (auto [texture, path] :
          std::ranges::views::zip(tx, texturePaths)) {
         int width, height, nrChannels;
-        auto data = stbi_load(path.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
+        auto pathString = path.string();
+        auto data = stbi_load(
+            pathString.c_str(), 
+            &width, 
+            &height, 
+            &nrChannels, 
+            STBI_rgb_alpha);
         if (data == nullptr) {
-            std::println(stderr, "Failed to load texture: '{}'", path.c_str());
+            std::println(stderr, "Failed to load texture: '{}'", pathString.c_str());
             continue;
         }
 
