@@ -265,3 +265,46 @@ void engine::component::Timer::draw(glm::mat4)
         }
     }
 }
+
+engine::component::collision::Shape::Shape(Object &parent, Type type)
+: parent(parent), type(type)
+{ allShapes.push_back(this); }
+
+engine::component::collision::Shape::~Shape()
+{ std::erase(allShapes, this); }
+
+engine::component::collision::Box::Box(Object &parent)
+: Shape(parent, BOX)
+{}
+
+engine::component::collision::Box* engine::component::collision::Box::checkCollision()
+{
+    float myLeft   = this->transform.translate.x - (this->size.x / 2.0f);
+    float myRight  = this->transform.translate.x + (this->size.x / 2.0f);
+    float myTop    = this->transform.translate.y - (this->size.y / 2.0f);
+    float myBottom = this->transform.translate.y + (this->size.y / 2.0f);
+
+    for (Shape* otherShape : allShapes) 
+    {
+        if (otherShape == this) continue;
+        if (otherShape->type == BOX) 
+        {
+            Box* otherBox = static_cast<Box*>(otherShape);
+            float otherLeft   = otherBox->transform.translate.x - (otherBox->size.x / 2.0f);
+            float otherRight  = otherBox->transform.translate.x + (otherBox->size.x / 2.0f);
+            float otherTop    = otherBox->transform.translate.y - (otherBox->size.y / 2.0f);
+            float otherBottom = otherBox->transform.translate.y + (otherBox->size.y / 2.0f);
+
+            // AABB overlap test
+            bool overlapX = (myLeft < otherRight) && (myRight > otherLeft);
+            bool overlapY = (myTop < otherBottom) && (myBottom > otherTop);
+
+            if (overlapX && overlapY) 
+            {
+                return otherBox;
+            }
+        }
+    }
+
+    return nullptr;
+}
