@@ -1,7 +1,9 @@
-#include <array>
+#include "common.hpp"
 #include <components.hpp>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
+#include <functional>
 #include <initializer_list>
 #include <objects.hpp>
 
@@ -42,6 +44,43 @@ genQuad(float width, float height) {
     };
 }
 
+struct Buffers {
+    uint32_t VBO = 0,
+             VAO = 0,
+             EBO = 0;
+
+    static Buffers create(
+        std::vector<float> &vertices,
+        std::vector<uint32_t> &indices
+    ) {
+        uint32_t VBO = 0, VAO = 0, EBO = 0;
+        glGenBuffers(1, &VBO);
+        glGenBuffers(1, &EBO);
+        glGenVertexArrays(1, &VAO);
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(
+                GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(),
+                vertices.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(
+                GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(),
+                indices.data(), GL_STATIC_DRAW);
+
+        glVertexAttribPointer(
+                0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                reinterpret_cast<void *>(0));
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(
+                1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                reinterpret_cast<void *>(2 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+
+        return {VBO, VAO, EBO};
+    }
+};
+
 engine::component::Transform::Transform(
         vec2<float> _scale, vec2<float> _translate, float _rotate)
 {
@@ -51,18 +90,20 @@ engine::component::Transform::Transform(
 }
 
 #ifdef NDEBUG
-void engine::component::Transform::inspector(const char *prefix) {
-    if (prefix == nullptr) {
-        ImGui::Text("Transform");
-        ImGui::Indent();
-            ImGui::DragFloat2("Translate", translate.data());
-            ImGui::DragFloat2("Scale", scale.data(), 0.01f);
-            ImGui::DragFloat2("Rotate", &rotate, 1.0f);
-        ImGui::Unindent();
-        ImGui::NewLine();
+void engine::component::Transform::inspector(const std::string &prefix) {
+    if (prefix.empty()) {
+        if (ImGui::CollapsingHeader("Transform")) {
+            ImGui::Indent();
+                ImGui::DragFloat2("Translate", translate.data());
+                ImGui::DragFloat2("Scale", scale.data(), 0.01f);
+                ImGui::DragFloat2("Rotate", &rotate, 1.0f);
+            ImGui::Unindent();
+            ImGui::NewLine();
+        }
     } else {
-        ImGui::Text("Transform (%s)", prefix);
-        ImGui::Indent();
+        if (ImGui::TreeNode(std::format(
+            "Transform ({})", prefix).c_str()))
+        {
             ImGui::DragFloat2(
                 std::format("Translate ({})", prefix).c_str(),
                 translate.data());
@@ -72,17 +113,18 @@ void engine::component::Transform::inspector(const char *prefix) {
             ImGui::DragFloat2(
                 std::format("Rotate ({})", prefix).c_str(),
                 &rotate, 1.0f);
-        ImGui::Unindent();
-        ImGui::NewLine();
+            ImGui::NewLine();
+            ImGui::TreePop();
+        }
     }
 }
 #endif
 
 glm::mat4 engine::component::Transform::model() const {
     auto model = glm::identity<glm::mat4>();
-    model = glm::translate(model, glm::vec3(translate.x, translate.y, 0.0));
+    model = glm::translate(model, glm::vec3(translate.x(), translate.y(), 0.0));
     model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0, 0.0, 1.0));
-    model = glm::scale(model, glm::vec3(scale.x, scale.y, 1.0f));
+    model = glm::scale(model, glm::vec3(scale.x(), scale.y(), 1.0f));
     return model;
 }
 
@@ -127,34 +169,15 @@ engine::component::Sprite::Sprite(int width, int height,
     textures = std::move(tx);
 
     // create vertices and buffers
-    auto [vertices, indices] = genQuad(size.x, size.y);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(
-            GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(),
-            vertices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(),
-            indices.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(
-            0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-            reinterpret_cast<void *>(0));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
-            1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-            reinterpret_cast<void *>(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    indexCount = indices.size();
+    auto quad = genQuad(size.x(), size.y());
+    auto buffers = Buffers::create(quad.first, quad.second);
+    VAO = buffers.VAO;
+    VBO = buffers.VBO;
+    EBO = buffers.EBO;
+    indexCount = quad.second.size();
 }
 
-void engine::component::Sprite::draw(glm::mat4 model) {
+void engine::component::Sprite::draw(const glm::mat4 &model) {
     if (!hidden) {
         auto shdr = shader::default_shader();
         shader::use(shdr);
@@ -172,22 +195,29 @@ void engine::component::Sprite::draw(glm::mat4 model) {
 
 #ifdef NDEBUG
 void engine::component::Sprite::inspector(uint32_t id) {
-    ImGui::Text("Sprite #%u", id);
-    ImGui::Indent();
-        ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
-        transform.inspector(std::format("Sprite #{} ", id).c_str());
+    if (ImGui::CollapsingHeader(std::format(
+        "Sprite #{}", id).c_str()))
+    {
+        ImGui::Indent();
+            ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
 
-        // display paths
-        auto _paths = std::ranges::views::zip(std::views::iota(0u), texturePaths);
-        for (auto [i, path] : _paths) {
-            auto name = std::format("{} (#{})",
-                path.filename().c_str(), id);
-            if (ImGui::Selectable(name.c_str(), i == current_texture)) {
-                current_texture = i;
+            // display paths
+            if (ImGui::TreeNode(std::format("Sprites #{}", id).c_str())) {
+                auto _paths = std::ranges::views::zip(std::views::iota(0u), texturePaths);
+                for (auto [i, path] : _paths) {
+                    auto name = std::format("{} (#{})",
+                        path.filename().c_str(), id);
+                    if (ImGui::Selectable(name.c_str(), i == current_texture)) {
+                        current_texture = i;
+                    }
+                }
+                ImGui::TreePop();
             }
-        }
-    ImGui::Unindent();
-    ImGui::NewLine();
+
+            transform.inspector(std::format("Sprite #{} ", id));
+        ImGui::Unindent();
+        ImGui::NewLine();
+    }
 }
 #endif
 
@@ -200,11 +230,26 @@ engine::component::Sprite::~Sprite() {
 
 #ifdef NDEBUG
 void engine::component::Physics::inspector(uint32_t id) {
-    ImGui::Text("Physics #%u", id);
-    ImGui::Indent();
-    ImGui::DragFloat("gravity", &gravity, 0.01f);
-    ImGui::Unindent();
-    ImGui::NewLine();
+    if (ImGui::CollapsingHeader(std::format(
+        "Physics #{}", id).c_str()))
+    {
+        ImGui::Indent();
+        ImGui::DragFloat("gravity", &gravity, 0.01f);
+        if (ImGui::TreeNode("Collision shapes")) {
+            for (auto &s : collisionShapes) {
+                s.get().inspector();
+            }
+            ImGui::TreePop();
+        }
+        ImGui::Unindent();
+        ImGui::NewLine();
+    }
+}
+
+void engine::component::Physics::draw(const glm::mat4 &model) {
+    for (auto &s : collisionShapes) {
+        s.get().draw(model);
+    }
 }
 #endif
 
@@ -219,7 +264,7 @@ void engine::component::Timer::setTimeout(
     _duration = duration_ms;
 }
 
-void engine::component::Timer::draw(glm::mat4) {
+void engine::component::Timer::draw(const glm::mat4 &) {
     if (count > 0 && lambda != nullptr) {
         auto now = std::chrono::system_clock::now();
         if (now >= target) {
@@ -236,3 +281,53 @@ void engine::component::Timer::draw(glm::mat4) {
         }
     }
 }
+
+engine::component::collision::Rectangle::Rectangle()
+: CollisionShape() {
+#ifdef NDEBUG
+    auto quad = genQuad(1, 1);
+    auto buffers = Buffers::create(quad.first, quad.second);
+    VAO = buffers.VAO;
+    VBO = buffers.VBO;
+    EBO = buffers.EBO;
+    indexCount = quad.second.size();
+#endif
+}
+
+#ifdef NDEBUG
+void engine::component::collision::Rectangle::draw(
+    const glm::mat4 &model
+) {
+    if (!hidden) {
+        auto shdr = shader::default_shader();
+        shader::use(shdr);
+        shader::setMat4(shdr, "aspectRatio", aspectRatio());
+        shader::setInt(shdr, "useColor", 1);
+        shader::setVec3(shdr, "iColor", {0.2f, 0.7f, 0.2f});
+
+        auto m = glm::identity<glm::mat4>();
+        m = glm::scale(m, {size.x(), size.y(), 0});
+        m = model * transform.model() * m;
+        shader::setMat4(shdr, "model", m);
+
+        // std::println("index count {}", indexCount);
+        // std::println("VBO {}", VBO);
+        // std::println("VAO {}", VAO);
+        // std::println("EBO {}", EBO);
+        // exit(EXIT_SUCCESS);
+
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+    }
+}
+
+void engine::component::collision::Rectangle::inspector() {
+    if (ImGui::TreeNode(std::format("Rectangle #{}", id).c_str())) {
+        ImGui::DragFloat2(std::format("Size (Rectangle #{})", id).c_str(), size.data());
+        transform.inspector(std::format("Rectangle #{}", id));
+        ImGui::TreePop();
+    }
+}
+#endif
