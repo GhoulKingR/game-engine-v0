@@ -4,14 +4,15 @@
 #include <string>
 #include <cstdint>
 
-namespace engine {
-    class Object {
+namespace engine
+{
+    class Object
+    {
         static inline uint32_t objectCount = 0;
 
     protected:
         std::string name;
-        std::vector<std::reference_wrapper<
-            engine::component::Component>> components;
+        std::vector<std::reference_wrapper<engine::component::Component>> components;
 
     public:
         virtual void update(float) {}

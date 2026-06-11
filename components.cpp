@@ -26,8 +26,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-static std::pair<std::vector<float>, std::vector<uint32_t>>
-genQuad(float width, float height) {
+static std::pair<std::vector<float>, std::vector<uint32_t>> genQuad(float width, float height)
+{
     const auto h_width = width / 2.0f;
     const auto h_height = height / 2.0f;
 
@@ -42,73 +42,67 @@ genQuad(float width, float height) {
     };
 }
 
-engine::component::Transform::Transform(
-        vec2<float> _scale, vec2<float> _translate, float _rotate)
+engine::component::Transform::Transform(vec2<float> _scale, vec2<float> _translate, float _rotate)
 {
-    translate = _translate;
-    scale = _scale;
-    rotate = _rotate;
+    translate   = _translate;
+    scale       = _scale;
+    rotate      = _rotate;
 }
 
 #ifdef NDEBUG
-void engine::component::Transform::inspector(const char *prefix) {
-    if (prefix == nullptr) {
+void engine::component::Transform::inspector(const char *prefix)
+{
+    if (prefix == nullptr)
+    {
         ImGui::Text("Transform");
         ImGui::Indent();
-            ImGui::DragFloat2("Translate", translate.data());
-            ImGui::DragFloat2("Scale", scale.data(), 0.01f);
-            ImGui::DragFloat2("Rotate", &rotate, 1.0f);
+        ImGui::DragFloat2("Translate", translate.data());
+        ImGui::DragFloat2("Scale", scale.data(), 0.01f);
+        ImGui::DragFloat2("Rotate", &rotate, 1.0f);
         ImGui::Unindent();
         ImGui::NewLine();
-    } else {
+    }
+    else
+    {
         ImGui::Text("Transform (%s)", prefix);
         ImGui::Indent();
-            ImGui::DragFloat2(
-                std::format("Translate ({})", prefix).c_str(),
-                translate.data());
-            ImGui::DragFloat2(
-                std::format("Scale ({})", prefix).c_str(),
-                scale.data(), 0.01f);
-            ImGui::DragFloat2(
-                std::format("Rotate ({})", prefix).c_str(),
-                &rotate, 1.0f);
+        ImGui::DragFloat2(std::format("Translate ({})", prefix).c_str(), translate.data());
+        ImGui::DragFloat2(std::format("Scale ({})", prefix).c_str(), scale.data(), 0.01f);
+        ImGui::DragFloat2(std::format("Rotate ({})", prefix).c_str(), &rotate, 1.0f);
         ImGui::Unindent();
         ImGui::NewLine();
     }
 }
 #endif
 
-glm::mat4 engine::component::Transform::model() const {
+glm::mat4 engine::component::Transform::model() const
+{
     auto model = glm::identity<glm::mat4>();
-    model = glm::translate(model, glm::vec3(translate.x, translate.y, 0.0));
-    model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0, 0.0, 1.0));
-    model = glm::scale(model, glm::vec3(scale.x, scale.y, 1.0f));
+    model = glm::translate(model,   glm::vec3(translate.x, translate.y, 0.0)                            );
+    model = glm::rotate(model,      glm::radians(rotate),                       glm::vec3(0.0, 0.0, 1.0));
+    model = glm::scale(model,       glm::vec3(scale.x, scale.y, 1.0f)                                   );
     return model;
 }
 
-engine::component::Sprite::Sprite(int width, int height,
-    std::vector<std::filesystem::path> _tex)
+engine::component::Sprite::Sprite(int width, int height, std::vector<std::filesystem::path> _tex)
 {
     current_texture = 0;
-    size = { width, height };
+    size            = {width, height};
 
     // load textures
     stbi_set_flip_vertically_on_load(true);
-    texturePaths = std::move(_tex);
+    texturePaths    = std::move(_tex);
 
     std::vector<uint32_t> tx(texturePaths.size(), 0);
     glGenTextures(tx.size(), tx.data());
-    for (auto [texture, path] :
-         std::ranges::views::zip(tx, texturePaths)) {
+    for (auto [texture, path] : std::ranges::views::zip(tx, texturePaths))
+    {
         int width, height, nrChannels;
         auto pathString = path.string();
-        auto data = stbi_load(
-            pathString.c_str(),
-            &width,
-            &height,
-            &nrChannels,
-            STBI_rgb_alpha);
-        if (data == nullptr) {
+        auto data       = stbi_load(pathString.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
+
+        if (data == nullptr)
+        {
             std::println(stderr, "Failed to load texture: '{}'", pathString);
             continue;
         }
@@ -118,9 +112,8 @@ engine::component::Sprite::Sprite(int width, int height,
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         stbi_image_free(data);
     }
@@ -134,28 +127,22 @@ engine::component::Sprite::Sprite(int width, int height,
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(
-            GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(),
-            vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(),
-            indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), indices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(
-            0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-            reinterpret_cast<void *>(0));
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
-            1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-            reinterpret_cast<void *>(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     indexCount = indices.size();
 }
 
-void engine::component::Sprite::draw(glm::mat4 model) {
-    if (!hidden) {
+void engine::component::Sprite::draw(glm::mat4 model)
+{
+    if (!hidden)
+    {
         auto shdr = shader::default_shader();
         shader::use(shdr);
         shader::setMat4(shdr, "aspectRatio", aspectRatio());
@@ -171,70 +158,75 @@ void engine::component::Sprite::draw(glm::mat4 model) {
 }
 
 #ifdef NDEBUG
-void engine::component::Sprite::inspector(uint32_t id) {
+void engine::component::Sprite::inspector(uint32_t id)
+{
     ImGui::Text("Sprite #%u", id);
     ImGui::Indent();
-        ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
-        transform.inspector(std::format("Sprite #{} ", id).c_str());
+    ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
+    transform.inspector(std::format("Sprite #{} ", id).c_str());
 
-        // display paths
-        auto _paths = std::ranges::views::zip(std::views::iota(0u), texturePaths);
-        for (auto [i, path] : _paths) {
-            auto name = std::format("{} (#{})",
-                path.filename().c_str(), id);
-            if (ImGui::Selectable(name.c_str(), i == current_texture)) {
-                current_texture = i;
-            }
+    // display paths
+    for (auto [i, path] : std::ranges::views::zip(std::views::iota(0u), texturePaths))
+    {
+        auto name = std::format("{} (#{})", path.filename().string(), id);
+        if (ImGui::Selectable(name.c_str(), i == current_texture))
+        {
+            current_texture = i;
         }
+    }
     ImGui::Unindent();
     ImGui::NewLine();
 }
 #endif
 
-engine::component::Sprite::Sprite(Sprite &&_other) {
-    size = std::move(_other.size);
+engine::component::Sprite::Sprite(Sprite &&_other)
+{
+    size            = std::move(_other.size);
     current_texture = _other.current_texture;
-    transform = _other.transform;
-
-    VBO = _other.VBO;
-    EBO = _other.EBO;
-    VAO = _other.VAO;
-    _other.VBO = 0;
-    _other.VAO = 0;
-    _other.EBO = 0;
-
-    indexCount = _other.indexCount;
-    textures = std::move(_other.textures);
-    texturePaths = std::move(_other.texturePaths);
+    transform       = _other.transform;
+    VBO             = _other.VBO;
+    EBO             = _other.EBO;
+    VAO             = _other.VAO;
+    _other.VBO      = 0;
+    _other.VAO      = 0;
+    _other.EBO      = 0;
+    indexCount      = _other.indexCount;
+    textures        = std::move(_other.textures);
+    texturePaths    = std::move(_other.texturePaths);
 }
 
-engine::component::Sprite& engine::component::Sprite::operator=(Sprite &&_other) {
-    size = std::move(_other.size);
+engine::component::Sprite &engine::component::Sprite::operator=(Sprite &&_other)
+{
+    size            = std::move(_other.size);
     current_texture = _other.current_texture;
-    transform = _other.transform;
-
-    VBO = _other.VBO;
-    EBO = _other.EBO;
-    VAO = _other.VAO;
-    _other.VBO = 0;
-    _other.VAO = 0;
-    _other.EBO = 0;
-
-    indexCount = _other.indexCount;
-    textures = std::move(_other.textures);
-    texturePaths = std::move(_other.texturePaths);
+    transform       = _other.transform;
+    VBO             = _other.VBO;
+    EBO             = _other.EBO;
+    VAO             = _other.VAO;
+    _other.VBO      = 0;
+    _other.VAO      = 0;
+    _other.EBO      = 0;
+    indexCount      = _other.indexCount;
+    textures        = std::move(_other.textures);
+    texturePaths    = std::move(_other.texturePaths);
     return *this;
 }
 
-engine::component::Sprite::~Sprite() {
-    if (VBO != 0) glDeleteBuffers(1, &VBO);
-    if (EBO != 0) glDeleteBuffers(1, &EBO);
-    if (VAO != 0) glDeleteVertexArrays(1, &VAO);
-    if (textures.size() > 0) glDeleteTextures(textures.size(), textures.data());
+engine::component::Sprite::~Sprite()
+{
+    if (VBO != 0)
+        glDeleteBuffers(1, &VBO);
+    if (EBO != 0)
+        glDeleteBuffers(1, &EBO);
+    if (VAO != 0)
+        glDeleteVertexArrays(1, &VAO);
+    if (textures.size() > 0)
+        glDeleteTextures(textures.size(), textures.data());
 }
 
 #ifdef NDEBUG
-void engine::component::Physics::inspector(uint32_t id) {
+void engine::component::Physics::inspector(uint32_t id)
+{
     ImGui::Text("Physics #%u", id);
     ImGui::Indent();
     ImGui::DragFloat("gravity", &gravity, 0.01f);
@@ -243,30 +235,32 @@ void engine::component::Physics::inspector(uint32_t id) {
 }
 #endif
 
-void engine::component::Timer::setTimeout(
-    std::function<void()> callback, uint32_t duration_ms,
-    uint32_t times)
+void engine::component::Timer::setTimeout(std::function<void()> callback, uint32_t duration_ms, uint32_t times)
 {
-    target = std::chrono::system_clock::now() +
-             std::chrono::milliseconds(duration_ms);
-    lambda = callback;
-    count = times;
-    _duration = duration_ms;
+    target      = std::chrono::system_clock::now() + std::chrono::milliseconds(duration_ms);
+    lambda      = callback;
+    count       = times;
+    _duration   = duration_ms;
 }
 
-void engine::component::Timer::draw(glm::mat4) {
-    if (count > 0 && lambda != nullptr) {
+void engine::component::Timer::draw(glm::mat4)
+{
+    if (count > 0 && lambda != nullptr)
+    {
         auto now = std::chrono::system_clock::now();
-        if (now >= target) {
+        if (now >= target)
+        {
             count--;
             lambda();
 
-            if (count == 0) {
+            if (count == 0)
+            {
                 lambda = nullptr;
                 _duration = 0;
-            } else {
-                target = std::chrono::system_clock::now() +
-                         std::chrono::milliseconds(_duration);
+            }
+            else
+            {
+                target = std::chrono::system_clock::now() + std::chrono::milliseconds(_duration);
             }
         }
     }

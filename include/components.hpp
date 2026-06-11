@@ -13,32 +13,32 @@
 namespace engine {
     namespace component {
         struct Transform {
-            vec2<float> scale {1, 1};
-            vec2<float> translate {0, 0};
-            float rotate = 0;
+            vec2<float> scale       {1, 1};
+            vec2<float> translate   {0, 0};
+            float       rotate      = 0;
             
-            glm::mat4 model() const;
+            glm::mat4   model() const;
             Transform() = default;
             Transform(vec2<float> scale, vec2<float> translate, float rotate);
 
 #ifdef NDEBUG
-            void inspector(const char *prefix = nullptr);
+            void        inspector(const char *prefix = nullptr);
 #endif
         };
 
         struct Component {
-            bool hidden = false;
-            virtual void draw(glm::mat4) {}
-            virtual ~Component() = default;
+            bool    hidden = false;
 
+            virtual ~Component() = default;
+            virtual void draw(glm::mat4) {}
 #ifdef NDEBUG
             virtual void inspector(uint32_t) {}
 #endif
         };
 
         struct Sprite : public Component {
-            Transform transform;
-            uint32_t current_texture = 0;
+            Transform   transform;
+            uint32_t    current_texture = 0;
 
             void draw(glm::mat4) override;
 
@@ -50,12 +50,14 @@ namespace engine {
             ~Sprite();
 
         private:
-            vec2<int> size{0, 0};
-            static inline uint32_t objCount = 0;
-            uint32_t VBO = 0, EBO = 0, VAO = 0,
-                     indexCount = 0;
-            std::vector<uint32_t> textures;
-            std::vector<std::filesystem::path> texturePaths;
+            vec2<int>                           size{0, 0};
+            static inline uint32_t              objCount = 0;
+            uint32_t                            VBO = 0,
+                                                EBO = 0,
+                                                VAO = 0,
+                                                indexCount = 0;
+            std::vector<uint32_t>               textures;
+            std::vector<std::filesystem::path>  texturePaths;
 
 #ifdef NDEBUG
         public:
@@ -68,8 +70,9 @@ namespace engine {
             void draw(glm::mat4) override; // hijack `draw` function for poll
 
         private:
-            std::chrono::time_point<std::chrono::system_clock> target;
-            uint32_t count = 0, _duration = 0;
+            std::chrono::time_point<std::chrono::system_clock>  target;
+            uint32_t                                            count = 0,
+                                                                _duration = 0;
             std::function<void()> lambda = nullptr;
         };
 

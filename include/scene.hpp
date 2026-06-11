@@ -8,7 +8,7 @@ namespace engine {
         virtual void init() {}
 
     protected:
-        std::vector<Object *> objects;
+        std::vector<std::reference_wrapper<Object>> objects;
 
     public:
         virtual void update(float) {}
