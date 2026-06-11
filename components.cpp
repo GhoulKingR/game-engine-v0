@@ -227,11 +227,17 @@ engine::component::Sprite::~Sprite()
 #ifdef NDEBUG
 void engine::component::Physics::inspector(uint32_t id)
 {
-    ImGui::Text("Physics #%u", id);
-    ImGui::Indent();
-    ImGui::DragFloat("gravity", &gravity, 0.01f);
-    ImGui::Unindent();
-    ImGui::NewLine();
+    if (ImGui::CollapsingHeader(std::format("Physics #{}", id).c_str()))
+    {
+        ImGui::Indent();
+        ImGui::DragFloat("gravity", &gravity, 0.01f);
+        for (auto &_s : collisionShapes)
+        {
+            _s.get().inspector();
+        }
+        ImGui::Unindent();
+        ImGui::NewLine();
+    }
 }
 #endif
 
@@ -275,7 +281,11 @@ engine::component::collision::Shape::~Shape()
 
 engine::component::collision::Box::Box(Object &parent)
 : Shape(parent, BOX)
-{}
+{
+#ifdef NDEBUG
+    id = ++counter;
+#endif
+}
 
 engine::component::collision::Box* engine::component::collision::Box::checkCollision()
 {
@@ -308,3 +318,75 @@ engine::component::collision::Box* engine::component::collision::Box::checkColli
 
     return nullptr;
 }
+
+#ifdef NDEBUG
+engine::component::collision::Box::~Box()
+{
+    if (VBO != 0)
+        glDeleteBuffers(1, &VBO);
+    if (EBO != 0)
+        glDeleteBuffers(1, &EBO);
+    if (VAO != 0)
+        glDeleteVertexArrays(1, &VAO);
+}
+
+engine::component::collision::Box::Box(Box &&_other)
+: Shape(_other.parent, BOX)
+{
+    size            = std::move(_other.size);
+    transform       = _other.transform;
+    VBO             = _other.VBO;
+    EBO             = _other.EBO;
+    VAO             = _other.VAO;
+    _other.VBO      = 0;
+    _other.VAO      = 0;
+    _other.EBO      = 0;
+    indexCount      = _other.indexCount;
+}
+
+engine::component::collision::Box &engine::component::collision::Box::operator=(Box &&_other)
+{
+    Shape(_other.parent, BOX);
+    size            = std::move(_other.size);
+    transform       = _other.transform;
+    VBO             = _other.VBO;
+    EBO             = _other.EBO;
+    VAO             = _other.VAO;
+    _other.VBO      = 0;
+    _other.VAO      = 0;
+    _other.EBO      = 0;
+    indexCount      = _other.indexCount;
+    return *this;
+}
+
+void engine::component::collision::Box::draw()
+{
+    auto [vertices, indices] = genQuad(size.x, size.y);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), indices.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    indexCount = indices.size();
+}
+
+void engine::component::collision::Box::inspector()
+{
+    auto prefix = std::format("Box #{}", id);
+    if (ImGui::CollapsingHeader(prefix.c_str()))
+    {
+        ImGui::DragFloat2(std::format("Size ({})", prefix).c_str(), size.data());
+        transform.inspector(prefix.c_str());
+    }
+}
+#endif

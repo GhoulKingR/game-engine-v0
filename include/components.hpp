@@ -102,6 +102,12 @@ namespace engine
     
             protected:
                 static inline std::vector<Shape *> allShapes;
+
+#ifdef NDEBUG
+            public:
+                virtual void draw() {}
+                virtual void inspector() {}
+#endif
             };
 
             struct Box : public Shape
@@ -109,6 +115,18 @@ namespace engine
                 vec2<float> size {0.0f, 0.0f};
                 Box(Object &);
                 Box* checkCollision() override;
+#ifdef NDEBUG
+                ~Box();
+                Box(Box &&);
+                Box &operator=(Box &&);
+
+                void draw() override;
+                void inspector() override;
+            private:
+                uint32_t VBO = 0, VAO = 0, EBO = 0, indexCount = 0;
+                uint32_t id;
+                static inline uint32_t counter = 0;
+#endif
             };
         }
 
