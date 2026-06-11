@@ -16,27 +16,24 @@ namespace engine {
             vec2<float> scale {1, 1};
             vec2<float> translate {0, 0};
             float rotate = 0;
+            
+            glm::mat4 model() const;
+            Transform() = default;
+            Transform(vec2<float> scale, vec2<float> translate, float rotate);
 
 #ifdef NDEBUG
             void inspector(const char *prefix = nullptr);
 #endif
-            glm::mat4 model() const;
-
-            Transform() = default;
-            Transform(vec2<float> scale, vec2<float> translate, float rotate);
-            Transform(const Transform &) = delete;
-            Transform operator=(const Transform &) = delete;
-            Transform(Transform &&) = delete;
-            void operator=(Transform &&) = delete;
         };
 
         struct Component {
             bool hidden = false;
             virtual void draw(glm::mat4) {}
+            virtual ~Component() = default;
+
 #ifdef NDEBUG
             virtual void inspector(uint32_t) {}
 #endif
-            virtual ~Component() = default;
         };
 
         struct Sprite : public Component {
@@ -44,14 +41,11 @@ namespace engine {
             uint32_t current_texture = 0;
 
             void draw(glm::mat4) override;
-#ifdef NDEBUG
-            void inspector(uint32_t) override;
-#endif
 
             Sprite(const Sprite &) = delete;
             Sprite operator=(const Sprite &) = delete;
-            Sprite(Sprite &&) = delete;
-            Sprite& operator=(Sprite &&) = delete;
+            Sprite(Sprite &&);
+            Sprite& operator=(Sprite &&);
             Sprite(int w, int h, std::vector<std::filesystem::path>);
             ~Sprite();
 
@@ -62,6 +56,11 @@ namespace engine {
                      indexCount = 0;
             std::vector<uint32_t> textures;
             std::vector<std::filesystem::path> texturePaths;
+
+#ifdef NDEBUG
+        public:
+            void inspector(uint32_t) override;
+#endif
         };
 
         struct Timer : public Component {

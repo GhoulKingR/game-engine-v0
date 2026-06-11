@@ -10,7 +10,8 @@ namespace engine {
 
     protected:
         std::string name;
-        std::vector<component::Component *> components;
+        std::vector<std::reference_wrapper<
+            engine::component::Component>> components;
 
     public:
         virtual void update(float) {}
