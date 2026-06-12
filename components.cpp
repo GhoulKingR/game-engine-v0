@@ -170,9 +170,7 @@ void engine::component::Sprite::inspector(uint32_t id)
     {
         auto name = std::format("{} (#{})", path.filename().string(), id);
         if (ImGui::Selectable(name.c_str(), i == current_texture))
-        {
             current_texture = i;
-        }
     }
     ImGui::Unindent();
     ImGui::NewLine();
@@ -232,13 +230,7 @@ void engine::component::Physics::inspector(uint32_t id)
         ImGui::Indent();
         ImGui::DragFloat("gravity", &gravity, 0.01f);
         for (auto &_s : collisionShapes)
-        {
-            std::visit(
-                [](auto &c)
-                { c->inspector(); },
-                _s
-            );
-        }
+            std::visit([](auto &c){ c->inspector(); }, _s);
         ImGui::Unindent();
         ImGui::NewLine();
     }
@@ -247,16 +239,8 @@ void engine::component::Physics::inspector(uint32_t id)
 void engine::component::Physics::draw(const glm::mat4 & model)
 {
     if (!hidden)
-    {
         for (auto &_s : collisionShapes)
-        {
-            std::visit(
-                [model](auto &c)
-                { c->draw(model); },
-                _s
-            );
-        }
-    }
+            std::visit([model](auto &c) { c->draw(model); }, _s);
 }
 #endif
 

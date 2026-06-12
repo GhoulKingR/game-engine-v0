@@ -1,10 +1,9 @@
 #ifdef NDEBUG
 #include "imgui/imgui.h"
+#include <objects.hpp>
 #endif
 
-#include "objects.hpp"
 #include <scene.hpp>
-#include <optional>
 
 namespace engine
 {
@@ -12,40 +11,29 @@ namespace engine
     {
         update(deltaTime);
         for (auto &obj : objects)
-        {
-            obj.get().update(deltaTime);
-        }
+            obj->update(deltaTime);
     }
 
     void Scene::_draw()
     {
         for (auto &obj : objects)
-        {
-            obj.get()._draw();
-        }
+            obj->_draw();
     }
 
 #ifdef NDEBUG
     void Scene::_inspector()
     {
-        static std::optional<std::reference_wrapper<Object>> selected = std::nullopt;
-
+        static Object *selected = nullptr;
         ImGui::Begin("Scene tree");
-        for (auto &_o : objects)
+        for (auto &obj : objects)
         {
             ImGui::Bullet();
-            auto &obj = _o.get();
-            if (ImGui::Selectable(obj.getName().c_str(), selected.has_value() && &obj == &selected.value().get()))
-            {
+            if (ImGui::Selectable(obj->name.c_str(), obj == selected))
                 selected = obj;
-            }
         }
         ImGui::End();
-
-        if (selected.has_value())
-        {
-            selected.value().get()._inspector();
-        }
+        if (selected != nullptr)
+            selected->_inspector();
     }
 #endif
 }

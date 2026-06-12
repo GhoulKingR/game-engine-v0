@@ -11,7 +11,7 @@ namespace engine
         static inline uint32_t objectCount = 0;
 
     protected:
-        std::vector<std::reference_wrapper<engine::component::Component>> components;
+        std::vector<engine::component::Component *> components;
 
     public:
         std::string name;
@@ -22,7 +22,6 @@ namespace engine
         ~Object() = default;
 
 #ifdef NDEBUG
-        std::string getName() const { return name; }
         void _inspector();
 #endif
     };
