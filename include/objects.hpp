@@ -11,10 +11,10 @@ namespace engine
         static inline uint32_t objectCount = 0;
 
     protected:
-        std::string name;
         std::vector<std::reference_wrapper<engine::component::Component>> components;
 
     public:
+        std::string name;
         virtual void update(float) {}
         void _draw();
         component::Transform transform;

@@ -323,10 +323,11 @@ engine::component::collision::Box::Box(Object *parent)
 
 engine::component::collision::Box* engine::component::collision::Box::checkCollision()
 {
-    float myLeft   = this->transform.translate.x - (this->size.x / 2.0f);
-    float myRight  = this->transform.translate.x + (this->size.x / 2.0f);
-    float myTop    = this->transform.translate.y - (this->size.y / 2.0f);
-    float myBottom = this->transform.translate.y + (this->size.y / 2.0f);
+    auto _mTranslate = parent->transform.translate + transform.translate;
+    float myLeft   = _mTranslate.x - (this->size.x / 2.0f);
+    float myRight  = _mTranslate.x + (this->size.x / 2.0f);
+    float myTop    = _mTranslate.y + (this->size.y / 2.0f);
+    float myBottom = _mTranslate.y - (this->size.y / 2.0f);
 
     for (auto &otherShape : allShapes)
     {
@@ -335,22 +336,24 @@ engine::component::collision::Box* engine::component::collision::Box::checkColli
             auto otherBox = std::get<Box *>(otherShape);
             if (otherBox == this) continue;
 
-            float otherLeft   = otherBox->transform.translate.x - (otherBox->size.x / 2.0f);
-            float otherRight  = otherBox->transform.translate.x + (otherBox->size.x / 2.0f);
-            float otherTop    = otherBox->transform.translate.y - (otherBox->size.y / 2.0f);
-            float otherBottom = otherBox->transform.translate.y + (otherBox->size.y / 2.0f);
-            bool overlapX     = (myLeft < otherRight) && (myRight > otherLeft);
-            bool overlapY     = (myTop < otherBottom) && (myBottom > otherTop);
+            auto _oTranslate = otherBox->parent->transform.translate + otherBox->transform.translate;
+            float otherLeft   = _oTranslate.x - (otherBox->size.x / 2.0f);
+            float otherRight  = _oTranslate.x + (otherBox->size.x / 2.0f);
+            float otherTop    = _oTranslate.y + (otherBox->size.y / 2.0f);
+            float otherBottom = _oTranslate.y - (otherBox->size.y / 2.0f);
+
+            // AABB Separation Axis Theorem
+            bool overlapX = (myLeft <= otherRight) && (myRight >= otherLeft);
+            bool overlapY = (myBottom <= otherTop) && (myTop >= otherBottom);
 
             if (overlapX && overlapY)
-            {
                 return otherBox;
-            }
         }
     }
 
     return nullptr;
 }
+
 
 #ifdef NDEBUG
 engine::component::collision::Box::~Box()
