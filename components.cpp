@@ -2,11 +2,13 @@
 #include <components.hpp>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <initializer_list>
 #include <objects.hpp>
 
 #include <print>
 #include <utility>
+#include <variant>
 #include <vector>
 #include <ranges>
 #include <format>
@@ -139,7 +141,7 @@ engine::component::Sprite::Sprite(int width, int height, std::vector<std::filesy
     indexCount = indices.size();
 }
 
-void engine::component::Sprite::draw(glm::mat4 model)
+void engine::component::Sprite::draw(const glm::mat4 & model)
 {
     if (!hidden)
     {
@@ -150,8 +152,6 @@ void engine::component::Sprite::draw(glm::mat4 model)
         shader::setMat4(shdr, "model", model * transform.model());
 
         glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBindTexture(GL_TEXTURE_2D, textures.at(current_texture));
         glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
     }
@@ -233,10 +233,29 @@ void engine::component::Physics::inspector(uint32_t id)
         ImGui::DragFloat("gravity", &gravity, 0.01f);
         for (auto &_s : collisionShapes)
         {
-            _s.get().inspector();
+            std::visit(
+                [](auto &c)
+                { c->inspector(); },
+                _s
+            );
         }
         ImGui::Unindent();
         ImGui::NewLine();
+    }
+}
+
+void engine::component::Physics::draw(const glm::mat4 & model)
+{
+    if (!hidden)
+    {
+        for (auto &_s : collisionShapes)
+        {
+            std::visit(
+                [model](auto &c)
+                { c->draw(model); },
+                _s
+            );
+        }
     }
 }
 #endif
@@ -249,7 +268,7 @@ void engine::component::Timer::setTimeout(std::function<void()> callback, uint32
     _duration   = duration_ms;
 }
 
-void engine::component::Timer::draw(glm::mat4)
+void engine::component::Timer::draw(const glm::mat4 &)
 {
     if (count > 0 && lambda != nullptr)
     {
@@ -272,18 +291,33 @@ void engine::component::Timer::draw(glm::mat4)
     }
 }
 
-engine::component::collision::Shape::Shape(Object &parent, Type type)
-: parent(parent), type(type)
-{ allShapes.push_back(this); }
+static inline std::vector<engine::component::collision::Shape> allShapes;
 
-engine::component::collision::Shape::~Shape()
-{ std::erase(allShapes, this); }
-
-engine::component::collision::Box::Box(Object &parent)
-: Shape(parent, BOX)
+engine::component::collision::Box::Box(Object *parent)
+: parent(parent)
 {
+    allShapes.emplace_back(this);
+
 #ifdef NDEBUG
     id = ++counter;
+
+    auto [vertices, indices] = genQuad(1, 1);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), indices.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    indexCount = indices.size();
 #endif
 }
 
@@ -294,22 +328,21 @@ engine::component::collision::Box* engine::component::collision::Box::checkColli
     float myTop    = this->transform.translate.y - (this->size.y / 2.0f);
     float myBottom = this->transform.translate.y + (this->size.y / 2.0f);
 
-    for (Shape* otherShape : allShapes) 
+    for (auto &otherShape : allShapes)
     {
-        if (otherShape == this) continue;
-        if (otherShape->type == BOX) 
+        if (std::holds_alternative<Box *>(otherShape))
         {
-            Box* otherBox = static_cast<Box*>(otherShape);
+            auto otherBox = std::get<Box *>(otherShape);
+            if (otherBox == this) continue;
+
             float otherLeft   = otherBox->transform.translate.x - (otherBox->size.x / 2.0f);
             float otherRight  = otherBox->transform.translate.x + (otherBox->size.x / 2.0f);
             float otherTop    = otherBox->transform.translate.y - (otherBox->size.y / 2.0f);
             float otherBottom = otherBox->transform.translate.y + (otherBox->size.y / 2.0f);
+            bool overlapX     = (myLeft < otherRight) && (myRight > otherLeft);
+            bool overlapY     = (myTop < otherBottom) && (myBottom > otherTop);
 
-            // AABB overlap test
-            bool overlapX = (myLeft < otherRight) && (myRight > otherLeft);
-            bool overlapY = (myTop < otherBottom) && (myBottom > otherTop);
-
-            if (overlapX && overlapY) 
+            if (overlapX && overlapY)
             {
                 return otherBox;
             }
@@ -330,54 +363,17 @@ engine::component::collision::Box::~Box()
         glDeleteVertexArrays(1, &VAO);
 }
 
-engine::component::collision::Box::Box(Box &&_other)
-: Shape(_other.parent, BOX)
+void engine::component::collision::Box::draw(const glm::mat4 &model)
 {
-    size            = std::move(_other.size);
-    transform       = _other.transform;
-    VBO             = _other.VBO;
-    EBO             = _other.EBO;
-    VAO             = _other.VAO;
-    _other.VBO      = 0;
-    _other.VAO      = 0;
-    _other.EBO      = 0;
-    indexCount      = _other.indexCount;
-}
+    auto shdr = shader::default_shader();
+    shader::use(shdr);
+    shader::setMat4(shdr, "aspectRatio", aspectRatio());
+    shader::setInt(shdr, "useColor", 1);
+    shader::setVec3(shdr, "iColor", {0.3f, 0.1f, 0.5f});
+    shader::setMat4(shdr, "model", model * transform.model());
 
-engine::component::collision::Box &engine::component::collision::Box::operator=(Box &&_other)
-{
-    Shape(_other.parent, BOX);
-    size            = std::move(_other.size);
-    transform       = _other.transform;
-    VBO             = _other.VBO;
-    EBO             = _other.EBO;
-    VAO             = _other.VAO;
-    _other.VBO      = 0;
-    _other.VAO      = 0;
-    _other.EBO      = 0;
-    indexCount      = _other.indexCount;
-    return *this;
-}
-
-void engine::component::collision::Box::draw()
-{
-    auto [vertices, indices] = genQuad(size.x, size.y);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), indices.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    indexCount = indices.size();
+    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
 }
 
 void engine::component::collision::Box::inspector()
