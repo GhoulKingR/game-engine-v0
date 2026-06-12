@@ -14,7 +14,7 @@ namespace engine
             obj->update(deltaTime);
     }
 
-    void Scene::_draw()
+    void Scene::_draw() noexcept
     {
         for (auto &obj : objects)
             obj->_draw();

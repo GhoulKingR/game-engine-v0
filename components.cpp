@@ -52,7 +52,7 @@ engine::component::Transform::Transform(vec2<float> _scale, vec2<float> _transla
 }
 
 #ifdef NDEBUG
-void engine::component::Transform::inspector(const char *prefix)
+void engine::component::Transform::inspector(const char *prefix) noexcept
 {
     if (prefix == nullptr)
     {
@@ -77,7 +77,7 @@ void engine::component::Transform::inspector(const char *prefix)
 }
 #endif
 
-glm::mat4 engine::component::Transform::model() const
+glm::mat4 engine::component::Transform::model() const noexcept
 {
     auto model = glm::identity<glm::mat4>();
     model = glm::translate(model,   glm::vec3(translate.x, translate.y, 0.0)                            );
@@ -141,7 +141,7 @@ engine::component::Sprite::Sprite(int width, int height, std::vector<std::filesy
     indexCount = indices.size();
 }
 
-void engine::component::Sprite::draw(const glm::mat4 & model)
+void engine::component::Sprite::draw(const glm::mat4 & model) noexcept
 {
     if (!hidden)
     {
@@ -158,7 +158,7 @@ void engine::component::Sprite::draw(const glm::mat4 & model)
 }
 
 #ifdef NDEBUG
-void engine::component::Sprite::inspector(uint32_t id)
+void engine::component::Sprite::inspector(uint32_t id) noexcept
 {
     ImGui::Text("Sprite #%u", id);
     ImGui::Indent();
@@ -223,7 +223,7 @@ engine::component::Sprite::~Sprite()
 }
 
 #ifdef NDEBUG
-void engine::component::Physics::inspector(uint32_t id)
+void engine::component::Physics::inspector(uint32_t id) noexcept
 {
     if (ImGui::CollapsingHeader(std::format("Physics #{}", id).c_str()))
     {
@@ -236,7 +236,7 @@ void engine::component::Physics::inspector(uint32_t id)
     }
 }
 
-void engine::component::Physics::draw(const glm::mat4 & model)
+void engine::component::Physics::draw(const glm::mat4 & model) noexcept
 {
     if (!hidden)
         for (auto &_s : collisionShapes)
@@ -244,7 +244,7 @@ void engine::component::Physics::draw(const glm::mat4 & model)
 }
 #endif
 
-void engine::component::Timer::setTimeout(std::function<void()> callback, uint32_t duration_ms, uint32_t times)
+void engine::component::Timer::setTimeout(std::function<void()> callback, uint32_t duration_ms, uint32_t times) noexcept
 {
     target      = std::chrono::system_clock::now() + std::chrono::milliseconds(duration_ms);
     lambda      = callback;
@@ -252,7 +252,7 @@ void engine::component::Timer::setTimeout(std::function<void()> callback, uint32
     _duration   = duration_ms;
 }
 
-void engine::component::Timer::draw(const glm::mat4 &)
+void engine::component::Timer::draw(const glm::mat4 &) noexcept
 {
     if (count > 0 && lambda != nullptr)
     {
@@ -305,7 +305,7 @@ engine::component::collision::Box::Box(Object *parent)
 #endif
 }
 
-engine::component::collision::Shape engine::component::collision::Box::checkCollision()
+engine::component::collision::Shape engine::component::collision::Box::checkCollision() const noexcept
 {
     auto _mTranslate = parent->transform.translate + transform.translate;
     float myLeft   = _mTranslate.x - (this->size.x / 2.0f);
@@ -350,7 +350,7 @@ engine::component::collision::Box::~Box()
         glDeleteVertexArrays(1, &VAO);
 }
 
-void engine::component::collision::Box::draw(const glm::mat4 &model)
+void engine::component::collision::Box::draw(const glm::mat4 &model) const noexcept
 {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -371,7 +371,7 @@ void engine::component::collision::Box::draw(const glm::mat4 &model)
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
 }
 
-void engine::component::collision::Box::inspector()
+void engine::component::collision::Box::inspector() noexcept
 {
     auto prefix = std::format("Box #{}", id);
     if (ImGui::CollapsingHeader(prefix.c_str()))

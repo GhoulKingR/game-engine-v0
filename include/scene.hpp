@@ -13,7 +13,7 @@ namespace engine {
     public:
         virtual void update(float) {}
         void _update(float);
-        void _draw();
+        void _draw() noexcept;
 #ifdef NDEBUG
         void _inspector();
 #endif

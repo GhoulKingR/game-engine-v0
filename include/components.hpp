@@ -22,22 +22,22 @@ namespace engine
             vec2<float> scale{1, 1};
             vec2<float> translate{0, 0};
             float       rotate = 0;
-            glm::mat4   model() const;
+            glm::mat4   model() const noexcept;
             Transform() = default;
             Transform(vec2<float> scale, vec2<float> translate, float rotate);
 
 #ifdef NDEBUG
-            void        inspector(const char *prefix = nullptr);
+            void        inspector(const char *prefix = nullptr) noexcept;
 #endif
         };
 
         struct Component
         {
             bool            hidden = false;
-            virtual void    draw(const glm::mat4&) {}
+            virtual void    draw(const glm::mat4&) noexcept {}
             virtual ~Component() = default;
 #ifdef NDEBUG
-            virtual void    inspector(uint32_t) {}
+            virtual void    inspector(uint32_t) noexcept {}
 #endif
         };
 
@@ -45,7 +45,7 @@ namespace engine
         {
             Transform                           transform;
             uint32_t                            current_texture = 0;
-            void                                draw(const glm::mat4 &) override;
+            void                                draw(const glm::mat4 &) noexcept override;
 
             Sprite(const Sprite &) = delete;
             Sprite operator=(const Sprite &) = delete;
@@ -66,14 +66,14 @@ namespace engine
 
 #ifdef NDEBUG
         public:
-            void                                inspector(uint32_t) override;
+            void                                inspector(uint32_t) noexcept override;
 #endif
         };
 
         struct Timer : public Component
         {
-            void setTimeout(std::function<void()>, uint32_t duration_ms, uint32_t times = 1);
-            void draw(const glm::mat4 &) override; // hijack `draw` function for poll
+            void setTimeout(std::function<void()>, uint32_t duration_ms, uint32_t times = 1) noexcept;
+            void draw(const glm::mat4 &) noexcept override; // hijack `draw` function for poll
         private:
             std::chrono::time_point<std::chrono::system_clock> target;
             uint32_t                count = 0,
@@ -91,17 +91,17 @@ namespace engine
                 Transform transform;
                 Object *parent;
                 vec2<float> size {0.0f, 0.0f};
-                Box(Object *);
-                Shape checkCollision();
+                Shape checkCollision() const noexcept;
 
+                Box(Object *);
                 Box(Box &&) = delete;
                 Box &operator=(Box &&) = delete;
                 Box(const Box &) = delete;
                 Box &operator=(const Box &) = delete;
 #ifdef NDEBUG
                 ~Box();
-                void draw(const glm::mat4 &);
-                void inspector();
+                void draw(const glm::mat4 &) const noexcept;
+                void inspector() noexcept;
 #endif
             private:
                 uint32_t VBO = 0, VAO = 0, EBO = 0, indexCount = 0;
@@ -117,8 +117,8 @@ namespace engine
             std::vector<collision::Shape> collisionShapes;
 
 #ifdef NDEBUG
-            void inspector(uint32_t) override;
-            void draw(const glm::mat4 &) override;
+            void inspector(uint32_t) noexcept override;
+            void draw(const glm::mat4 &) noexcept override;
 #endif
         };
     }

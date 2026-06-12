@@ -14,15 +14,15 @@ namespace engine
         std::vector<engine::component::Component *> components;
 
     public:
-        std::string name;
+        std::string             name;
+        component::Transform    transform;
         virtual void update(float) {}
-        void _draw();
-        component::Transform transform;
+                void _draw()        noexcept;
         Object(const char *name = nullptr);
         ~Object() = default;
 
 #ifdef NDEBUG
-        void _inspector();
+        void _inspector() noexcept;
 #endif
     };
 }

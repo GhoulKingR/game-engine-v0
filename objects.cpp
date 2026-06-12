@@ -19,14 +19,14 @@ namespace engine {
         }
     }
 
-    void Object::_draw() {
+    void Object::_draw() noexcept {
         auto model = transform.model();
         for (auto &_comp : components)
             _comp->draw(model);
     }
 
 #ifdef NDEBUG
-    void Object::_inspector() {
+    void Object::_inspector() noexcept {
         uint32_t i = 0;
         ImGui::Begin("Inspector");
         ImGui::SeparatorText(name.c_str());
