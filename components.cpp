@@ -365,12 +365,20 @@ engine::component::collision::Box::~Box()
 
 void engine::component::collision::Box::draw(const glm::mat4 &model)
 {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     auto shdr = shader::default_shader();
     shader::use(shdr);
     shader::setMat4(shdr, "aspectRatio", aspectRatio());
     shader::setInt(shdr, "useColor", 1);
     shader::setVec3(shdr, "iColor", {0.3f, 0.1f, 0.5f});
-    shader::setMat4(shdr, "model", model * transform.model());
+    shader::setFloat(shdr, "alpha", 0.5);
+
+    auto m = glm::identity<glm::mat4>();
+    m = glm::scale(m, {size.x, size.y, 0.0f});
+    m = model * transform.model() * m;
+    shader::setMat4(shdr, "model", m);
 
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
