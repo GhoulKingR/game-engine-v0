@@ -83,13 +83,16 @@ namespace engine
 
         namespace collision
         {
+            struct  Box;
+            using   Shape = std::variant<Box*>;
+
             struct Box
             {
                 Transform transform;
                 Object *parent;
                 vec2<float> size {0.0f, 0.0f};
                 Box(Object *);
-                Box* checkCollision();
+                Shape checkCollision();
 
                 Box(Box &&) = delete;
                 Box &operator=(Box &&) = delete;
@@ -106,7 +109,6 @@ namespace engine
                 static inline uint32_t counter = 0;
             };
 
-            using Shape = std::variant<Box*>;
         }
 
         struct Physics : public Component

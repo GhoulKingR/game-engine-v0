@@ -305,7 +305,7 @@ engine::component::collision::Box::Box(Object *parent)
 #endif
 }
 
-engine::component::collision::Box* engine::component::collision::Box::checkCollision()
+engine::component::collision::Shape engine::component::collision::Box::checkCollision()
 {
     auto _mTranslate = parent->transform.translate + transform.translate;
     float myLeft   = _mTranslate.x - (this->size.x / 2.0f);
