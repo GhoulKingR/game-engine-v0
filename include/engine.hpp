@@ -7,6 +7,7 @@
 namespace engine {
     void init(const char *title, uint32_t w, uint32_t h);
     void loadScene(Scene *);
+    void unloadScene();
     void start();
     void cleanup();
     glm::mat4 aspectRatio();

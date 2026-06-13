@@ -163,9 +163,10 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height) {
 }
 
 static engine::Scene* currentScene;
-void engine::loadScene(engine::Scene *_scene) {
-    currentScene = _scene;
-}
+void engine::loadScene(engine::Scene *_scene)
+{ currentScene = _scene; }
+void engine::unloadScene()
+{ currentScene = nullptr; }
 
 #ifdef NDEBUG
 static bool paused = false;

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <array>
 #include <components.hpp>
 #include <cstdint>
@@ -280,7 +281,7 @@ static inline std::vector<engine::component::collision::Shape> allShapes;
 engine::component::collision::Box::Box(Object *parent)
 : parent(parent)
 {
-    allShapes.emplace_back(this);
+    allShapes.push_back(this);
 
 #ifdef NDEBUG
     id = ++counter;
@@ -342,12 +343,67 @@ engine::component::collision::Shape engine::component::collision::Box::checkColl
 #ifdef NDEBUG
 engine::component::collision::Box::~Box()
 {
+    std::erase_if(allShapes, [this](auto &val){
+        if (std::holds_alternative<Box *>(val) && std::get<Box *>(val) == this)
+            return true;
+        else
+            return false;
+    });
+
     if (VBO != 0)
         glDeleteBuffers(1, &VBO);
     if (EBO != 0)
         glDeleteBuffers(1, &EBO);
     if (VAO != 0)
         glDeleteVertexArrays(1, &VAO);
+}
+
+engine::component::collision::Box::Box(Box &&_other)
+{
+    id              = _other.id;
+    size            = std::move(_other.size);
+    transform       = _other.transform;
+    VBO             = _other.VBO;
+    EBO             = _other.EBO;
+    VAO             = _other.VAO;
+    _other.VBO      = 0;
+    _other.VAO      = 0;
+    _other.EBO      = 0;
+    indexCount      = _other.indexCount;
+
+    // replace old shape with new instance in allShapes vector
+    std::replace_if(allShapes.begin(), allShapes.end(),
+        [this](auto &val){
+            if (std::holds_alternative<Box *>(val) && std::get<Box *>(val) == this)
+                return true;
+            else
+                return false;
+        }, this);
+}
+
+engine::component::collision::Box&
+engine::component::collision::Box::operator=(Box &&_other)
+{
+    id              = _other.id;
+    size            = std::move(_other.size);
+    transform       = _other.transform;
+    VBO             = _other.VBO;
+    EBO             = _other.EBO;
+    VAO             = _other.VAO;
+    _other.VBO      = 0;
+    _other.VAO      = 0;
+    _other.EBO      = 0;
+    indexCount      = _other.indexCount;
+
+    // replace old shape with new instance in allShapes vector
+    std::replace_if(allShapes.begin(), allShapes.end(),
+        [this](auto &val){
+            if (std::holds_alternative<Box *>(val) && std::get<Box *>(val) == this)
+                return true;
+            else
+                return false;
+        }, this);
+    return *this;
 }
 
 void engine::component::collision::Box::draw(const glm::mat4 &model) const noexcept

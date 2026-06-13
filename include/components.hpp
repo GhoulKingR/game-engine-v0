@@ -94,8 +94,8 @@ namespace engine
                 Shape checkCollision() const noexcept;
 
                 Box(Object *);
-                Box(Box &&) = delete;
-                Box &operator=(Box &&) = delete;
+                Box(Box &&);
+                Box &operator=(Box &&);
                 Box(const Box &) = delete;
                 Box &operator=(const Box &) = delete;
 #ifdef NDEBUG
