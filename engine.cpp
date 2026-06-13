@@ -198,7 +198,10 @@ static void guiLoop() {
 
     // central game view
     ImGuiWindowFlags gvFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
-    ImGui::Begin("Game view", nullptr, gvFlags);
+    if (paused)
+        ImGui::Begin("Game view (paused)", nullptr, gvFlags);
+    else
+        ImGui::Begin("Game view", nullptr, gvFlags);
     ImGui::Image(
         reinterpret_cast<void *>(static_cast<intptr_t>(gameview.viewTexture)),
         ImVec2(viewport.x, viewport.y),
