@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <filesystem>
 #include <functional>
 #include <glm/glm.hpp>
 #include <unistd.h>
@@ -10,6 +9,7 @@
 #include <vector>
 
 #include "common.hpp"
+#include "textures.hpp"
 
 namespace engine
 {
@@ -51,18 +51,17 @@ namespace engine
             Sprite operator=(const Sprite &) = delete;
             Sprite(Sprite &&);
             Sprite &operator=(Sprite &&);
-            Sprite(int w, int h, std::vector<std::filesystem::path>);
+            Sprite(int w, int h, std::vector<Texture *>);
             ~Sprite();
 
         private:
-            vec2<int>                           size{0, 0};
-            static inline uint32_t              objCount = 0;
-            uint32_t                            VBO = 0,
-                                                EBO = 0,
-                                                VAO = 0,
-                                                indexCount = 0;
-            std::vector<uint32_t>               textures;
-            std::vector<std::filesystem::path>  texturePaths;
+            vec2<int>                               size{0, 0};
+            static inline uint32_t                  objCount = 0;
+            uint32_t                                VBO = 0,
+                                                    EBO = 0,
+                                                    VAO = 0,
+                                                    indexCount = 0;
+            std::vector<Texture *>   textures;
 
 #ifdef NDEBUG
         public:

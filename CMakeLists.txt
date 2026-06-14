@@ -34,6 +34,7 @@ add_library(${PROJECT_NAME} STATIC
     glad.c
     objects.cpp
     scene.cpp
+    textures.cpp
     shaders/shaders.cpp
 )
 

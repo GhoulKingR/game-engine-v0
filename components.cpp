@@ -1,24 +1,22 @@
-#include <algorithm>
 #include <array>
 #include <components.hpp>
 #include <cstdint>
-#include <filesystem>
 #include <functional>
 #include <initializer_list>
 #include <objects.hpp>
 
-#include <print>
 #include <utility>
 #include <variant>
 #include <vector>
 #include <ranges>
-#include <format>
 #include <imgui/imgui.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #ifdef NDEBUG
 #include <string>
+#include <algorithm>
+#include <format>
 #endif
 
 #include "engine.hpp"
@@ -87,40 +85,14 @@ glm::mat4 engine::component::Transform::model() const noexcept
     return model;
 }
 
-engine::component::Sprite::Sprite(int width, int height, std::vector<std::filesystem::path> _tex)
+engine::component::Sprite::Sprite(int width, int height, std::vector<Texture *> _tex)
 {
     current_texture = 0;
     size            = {width, height};
 
     // load textures
     stbi_set_flip_vertically_on_load(true);
-    texturePaths    = std::move(_tex);
-
-    std::vector<uint32_t> tx(texturePaths.size(), 0);
-    glGenTextures(tx.size(), tx.data());
-    for (auto [texture, path] : std::ranges::views::zip(tx, texturePaths))
-    {
-        int width, height, nrChannels;
-        auto pathString = path.string();
-        auto data       = stbi_load(pathString.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
-
-        if (data == nullptr)
-        {
-            std::println(stderr, "Failed to load texture: '{}'", pathString);
-            continue;
-        }
-
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-        glGenerateMipmap(GL_TEXTURE_2D);
-        stbi_image_free(data);
-    }
-    textures = std::move(tx);
+    textures = std::move(_tex);
 
     // create vertices and buffers
     auto [vertices, indices] = genQuad(size.x, size.y);
@@ -153,7 +125,7 @@ void engine::component::Sprite::draw(const glm::mat4 & model) noexcept
         shader::setMat4(shdr, "model", model * transform.model());
 
         glBindVertexArray(VAO);
-        glBindTexture(GL_TEXTURE_2D, textures.at(current_texture));
+        glBindTexture(GL_TEXTURE_2D, textures.at(current_texture)->id);
         glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
     }
 }
@@ -167,9 +139,9 @@ void engine::component::Sprite::inspector(uint32_t id) noexcept
     transform.inspector(std::format("Sprite #{} ", id).c_str());
 
     // display paths
-    for (auto [i, path] : std::ranges::views::zip(std::views::iota(0u), texturePaths))
+    for (auto [i, texture] : std::ranges::views::zip(std::views::iota(0u), textures))
     {
-        auto name = std::format("{} (#{})", path.filename().string(), id);
+        auto name = std::format("{} (#{})", texture->path, id);
         if (ImGui::Selectable(name.c_str(), i == current_texture))
             current_texture = i;
     }
@@ -191,7 +163,6 @@ engine::component::Sprite::Sprite(Sprite &&_other)
     _other.EBO      = 0;
     indexCount      = _other.indexCount;
     textures        = std::move(_other.textures);
-    texturePaths    = std::move(_other.texturePaths);
 }
 
 engine::component::Sprite &engine::component::Sprite::operator=(Sprite &&_other)
@@ -207,7 +178,6 @@ engine::component::Sprite &engine::component::Sprite::operator=(Sprite &&_other)
     _other.EBO      = 0;
     indexCount      = _other.indexCount;
     textures        = std::move(_other.textures);
-    texturePaths    = std::move(_other.texturePaths);
     return *this;
 }
 
@@ -219,8 +189,6 @@ engine::component::Sprite::~Sprite()
         glDeleteBuffers(1, &EBO);
     if (VAO != 0)
         glDeleteVertexArrays(1, &VAO);
-    if (textures.size() > 0)
-        glDeleteTextures(textures.size(), textures.data());
 }
 
 #ifdef NDEBUG
@@ -436,4 +404,7 @@ void engine::component::collision::Box::inspector() noexcept
         transform.inspector(prefix.c_str());
     }
 }
+#else
+engine::component::collision::Box::Box(Box &&) = default;
+engine::component::collision::Box& engine::component::collision::Box::operator=(Box &&) = default;
 #endif

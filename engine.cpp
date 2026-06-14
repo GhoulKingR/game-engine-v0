@@ -39,11 +39,11 @@ static engine::vec2<int> actual{
 };
 
 static struct {
-    uint32_t viewTexture = 0;
-    uint32_t FBO = 0;
-    uint32_t RBO1 = 0;
-    uint32_t RBO2 = 0;
-    uint32_t mFBO = 0;
+    uint32_t viewTexture    = 0;
+    uint32_t FBO            = 0;
+    uint32_t RBO1           = 0;
+    uint32_t RBO2           = 0;
+    uint32_t mFBO           = 0;
 } gameview;
 
 static void cleanupTextures() {
@@ -163,10 +163,8 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height) {
 }
 
 static engine::Scene* currentScene;
-void engine::loadScene(engine::Scene *_scene)
-{ currentScene = _scene; }
-void engine::unloadScene()
-{ currentScene = nullptr; }
+void engine::loadScene(engine::Scene *_scene)   { currentScene = _scene; }
+void engine::unloadScene()                      { currentScene = nullptr; }
 
 #ifdef NDEBUG
 static bool paused = false;
