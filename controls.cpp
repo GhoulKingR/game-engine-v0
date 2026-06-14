@@ -46,6 +46,7 @@ namespace engine {
             auto actions = inputMap.equal_range(action);
             for (auto i = actions.first; i != actions.second; ++i) {
                 if (i->second.second.just_pressed) {
+                    clearFrameStates();
                     return true;
                 }
             }

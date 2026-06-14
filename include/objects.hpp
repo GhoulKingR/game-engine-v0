@@ -11,7 +11,7 @@ namespace engine
         static inline uint32_t objectCount = 0;
 
     protected:
-        std::vector<engine::component::Component *> components;
+        std::vector<engine::component::IComponent *> components;
 
     public:
         std::string             name;

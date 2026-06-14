@@ -168,6 +168,7 @@ void engine::unloadScene()                      { currentScene = nullptr; }
 
 #ifdef NDEBUG
 static bool paused = false;
+static bool _collision_shapes = false;
 static void guiLoop() {
     glClearColor(0.1, 0.1, 0.1, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -179,9 +180,10 @@ static void guiLoop() {
     static bool metrics = false;
     static bool demo_window = false;
     if (ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu("Window")) {
+        if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Show metrics", nullptr, &metrics);
             ImGui::MenuItem("Show ImGui demo window", nullptr, &demo_window);
+            ImGui::MenuItem("Draw collision shapes", nullptr, &_collision_shapes);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -211,6 +213,8 @@ static void guiLoop() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
+
+bool engine::drawCollisionShapes() { return _collision_shapes; }
 #endif
 
 static void gameLoop(float deltaTime) {

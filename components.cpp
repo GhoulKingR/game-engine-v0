@@ -207,7 +207,7 @@ void engine::component::Physics::inspector(uint32_t id) noexcept
 
 void engine::component::Physics::draw(const glm::mat4 & model) noexcept
 {
-    if (!hidden)
+    if (!hidden && drawCollisionShapes())
         for (auto &_s : collisionShapes)
             std::visit([model](auto &c) { c->draw(model); }, _s);
 }

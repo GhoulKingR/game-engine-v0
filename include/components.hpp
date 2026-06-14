@@ -31,17 +31,17 @@ namespace engine
 #endif
         };
 
-        struct Component
+        struct IComponent
         {
             bool hidden = false;
-            virtual void draw(const glm::mat4&) noexcept {}
-            virtual ~Component() = default;
+            virtual void draw(const glm::mat4&) noexcept {};
+            virtual ~IComponent() {};
 #ifdef NDEBUG
-            virtual void    inspector(uint32_t) noexcept {}
+            virtual void inspector(uint32_t) noexcept = 0;
 #endif
         };
 
-        struct Sprite : public Component
+        struct Sprite : public IComponent
         {
             Transform   transform;
             uint32_t    current_texture = 0;
@@ -69,10 +69,10 @@ namespace engine
 #endif
         };
 
-        struct Timer : public Component
+        struct Timer : public IComponent
         {
             void setTimeout(std::function<void()>, uint32_t duration_ms, uint32_t times = 1) noexcept;
-            void draw(const glm::mat4 &) noexcept override; // hijack `draw` function for poll
+            void draw(const glm::mat4 &) noexcept override; // hijack `draw` function for event polling
         private:
             std::chrono::time_point<std::chrono::system_clock>  target;
             uint32_t                                            count = 0,
@@ -110,14 +110,14 @@ namespace engine
 
         }
 
-        struct Physics : public Component
+        struct Physics : public IComponent
         {
             float gravity = 9.8;
             std::vector<collision::Shape> collisionShapes;
 
 #ifdef NDEBUG
-            void inspector(uint32_t) noexcept override;
             void draw(const glm::mat4 &) noexcept override;
+            void inspector(uint32_t) noexcept override;
 #endif
         };
     }

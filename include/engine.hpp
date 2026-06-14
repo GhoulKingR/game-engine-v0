@@ -11,4 +11,7 @@ namespace engine {
     void start();
     void cleanup();
     glm::mat4 aspectRatio();
+#ifdef NDEBUG
+    bool drawCollisionShapes();
+#endif
 }
