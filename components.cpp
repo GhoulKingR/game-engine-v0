@@ -27,7 +27,14 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-static std::pair<std::vector<float>, std::vector<uint32_t>> genQuad(float width, float height)
+// generate a quad mesh. Doesn't actually set it up in OpenGL.
+// It returns the vertices and indices for the quad mesh.
+//
+// Note: The indices are arranged in a way that if you render the 
+// mesh with GL_LINES, it gives an outline of the quad without the 
+// diagonal line.
+static std::pair<std::vector<float>, std::vector<uint32_t>>
+genQuad(float width, float height)
 {
     const auto h_width = width / 2.0f;
     const auto h_height = height / 2.0f;
@@ -51,6 +58,7 @@ engine::component::Transform::Transform(vec2<float> _scale, vec2<float> _transla
 }
 
 #ifdef NDEBUG
+// Transform object inspector panel
 void engine::component::Transform::inspector(const char *prefix) noexcept
 {
     if (prefix == nullptr)
@@ -65,17 +73,24 @@ void engine::component::Transform::inspector(const char *prefix) noexcept
     }
     else
     {
-        ImGui::Text("Transform (%s)", prefix);
-        ImGui::Indent();
-        ImGui::DragFloat2(std::format("Translate ({})", prefix).c_str(), translate.data());
-        ImGui::DragFloat2(std::format("Scale ({})", prefix).c_str(), scale.data(), 0.01f);
-        ImGui::DragFloat2(std::format("Rotate ({})", prefix).c_str(), &rotate, 1.0f);
-        ImGui::Unindent();
-        ImGui::NewLine();
+        if (ImGui::CollapsingHeader(std::format("Transform ({})", prefix).c_str()))
+        {
+            ImGui::Indent();
+            ImGui::DragFloat2(std::format("Translate ({})", prefix).c_str(), translate.data());
+            ImGui::DragFloat2(std::format("Scale ({})", prefix).c_str(), scale.data(), 0.01f);
+            ImGui::DragFloat2(std::format("Rotate ({})", prefix).c_str(), &rotate, 1.0f);
+            ImGui::Unindent();
+            ImGui::NewLine();
+        }
+        
+        // If prefix is not nullptr, that means it's part of a component 
+        // So we have this branch so it renders the elements in a more 
+        // component-friendly manner.
     }
 }
 #endif
 
+// Convert the transform's data into a singular model matrix
 glm::mat4 engine::component::Transform::model() const noexcept
 {
     auto model = glm::identity<glm::mat4>();
@@ -94,18 +109,19 @@ engine::component::Sprite::Sprite(int width, int height, std::vector<Texture *> 
     stbi_set_flip_vertically_on_load(true);
     textures = std::move(_tex);
 
-    // create vertices and buffers
     auto [vertices, indices] = genQuad(size.x, size.y);
+
+    // create and setup buffer objects and the array object.
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
-
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), indices.data(), GL_STATIC_DRAW);
 
+    // make sure they're fed into the right vert shader input.
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(2 * sizeof(float)));
@@ -138,9 +154,11 @@ void engine::component::Sprite::inspector(uint32_t id) noexcept
     {
         ImGui::Indent();
         ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
-        transform.inspector(std::format("Sprite #{} ", id).c_str());
+        
+        // display transform inspector first
+        transform.inspector(s.c_str());
 
-        // display paths
+        // display texture paths in inspector window
         for (auto [i, texture] : std::ranges::views::zip(std::views::iota(0u), textures))
         {
             auto name = std::format("{} (#{})", texture->path, id);
@@ -201,8 +219,11 @@ void engine::component::Physics::inspector(uint32_t id) noexcept
     {
         ImGui::Indent();
         ImGui::DragFloat("gravity", &gravity, 0.01f);
+        
+        // display inspector panels for all collision shapes
         for (auto &_s : collisionShapes)
             std::visit([](auto &c){ c->inspector(); }, _s);
+
         ImGui::Unindent();
         ImGui::NewLine();
     }
@@ -210,13 +231,17 @@ void engine::component::Physics::inspector(uint32_t id) noexcept
 
 void engine::component::Physics::draw(const glm::mat4 & model) noexcept
 {
+    // TODO: add `hidden` field to physics inspector panel.
+    // Draw the collision shapes
     if (!hidden && drawCollisionShapes())
         for (auto &_s : collisionShapes)
             std::visit([model](auto &c) { c->draw(model); }, _s);
 }
 #endif
 
-void engine::component::Timer::setTimeout(std::function<void()> callback, uint32_t duration_ms, uint32_t times) noexcept
+void engine::component::Timer::setTimeout(std::function<void()> callback,
+                                          uint32_t duration_ms,
+                                          uint32_t times) noexcept
 {
     target      = std::chrono::system_clock::now() + std::chrono::milliseconds(duration_ms);
     lambda      = callback;
@@ -256,8 +281,11 @@ engine::component::collision::Box::Box(Object *parent)
 
 #ifdef NDEBUG
     id = ++counter;
-
     auto [vertices, indices] = genQuad(1, 1);
+
+    // setup VBOs and VAOs for the physics collision shapes when drawn
+    // This only exists in the engine UI so there's no cause for concern 
+    // about optimizations
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
     glGenVertexArrays(1, &VAO);
@@ -314,11 +342,13 @@ engine::component::collision::Shape engine::component::collision::Box::checkColl
 #ifdef NDEBUG
 engine::component::collision::Box::~Box()
 {
+
+    // deletes current element from the allShapes vector.
+    // It just checks whether the shape is a Box pointer, and 
+    // if it is it compares whether the address of the pointer 
+    // is the same as `this`, and removes it.
     std::erase_if(allShapes, [this](auto &val){
-        if (std::holds_alternative<Box *>(val) && std::get<Box *>(val) == this)
-            return true;
-        else
-            return false;
+        return std::holds_alternative<Box *>(val) && std::get<Box *>(val) == this;
     });
 
     if (VBO != 0)
@@ -342,13 +372,13 @@ engine::component::collision::Box::Box(Box &&_other)
     _other.EBO      = 0;
     indexCount      = _other.indexCount;
 
-    // replace old shape with new instance in allShapes vector
+    // replace old shape with new instance in allShapes vector.
+    // Similar logic of the previous `erase_if`. Only that this one 
+    // replaces the "element to delete" with the new object.
     std::replace_if(allShapes.begin(), allShapes.end(),
-        [this](auto &val){
-            if (std::holds_alternative<Box *>(val) && std::get<Box *>(val) == this)
-                return true;
-            else
-                return false;
+        [&_other](auto &val){
+            return  std::holds_alternative<Box *>(val) &&
+                    std::get<Box *>(val) == &_other;
         }, this);
 }
 
@@ -366,13 +396,13 @@ engine::component::collision::Box::operator=(Box &&_other)
     _other.EBO      = 0;
     indexCount      = _other.indexCount;
 
-    // replace old shape with new instance in allShapes vector
+    // replace old shape with new instance in allShapes vector.
+    // Similar logic of the previous `erase_if`. Only that this one 
+    // replaces the "element to delete" with the new object.
     std::replace_if(allShapes.begin(), allShapes.end(),
-        [this](auto &val){
-            if (std::holds_alternative<Box *>(val) && std::get<Box *>(val) == this)
-                return true;
-            else
-                return false;
+        [&_other](auto &val){
+            return  std::holds_alternative<Box *>(val) &&
+                    std::get<Box *>(val) == &_other;
         }, this);
     return *this;
 }

@@ -17,6 +17,8 @@ namespace engine
 
     namespace component
     {
+        // Transform is not a component. Every object and component has a 
+        // transform field in them.
         struct Transform
         {
             vec2<float> scale{1, 1};
@@ -31,6 +33,7 @@ namespace engine
 #endif
         };
 
+        // Interface for components
         struct IComponent
         {
             bool hidden = false;
@@ -41,6 +44,7 @@ namespace engine
 #endif
         };
 
+        // Sprite component. Allows you to display sprites on the screen
         struct Sprite : public IComponent
         {
             Transform   transform;
@@ -69,6 +73,7 @@ namespace engine
 #endif
         };
 
+        // Timer component: Allows you to set timers with callbacks
         struct Timer : public IComponent
         {
             void setTimeout(std::function<void()>, uint32_t duration_ms, uint32_t times = 1) noexcept;
@@ -83,8 +88,11 @@ namespace engine
         namespace collision
         {
             struct  Box;
+
+            // TODO: Convert this to interface. (ICollisionShape?)
             using   Shape = std::variant<Box*>;
 
+            // Box collision shape
             struct Box
             {
                 Transform    transform;
@@ -102,6 +110,10 @@ namespace engine
                 void draw(const glm::mat4 &) const noexcept;
                 void inspector() noexcept;
 #endif
+
+                // This is required even when it's not needed because it can cause
+                // runtime overflow errors. I still don't understand how this was an 
+                // issue, but it took me days to figure out.
             private:
                 uint32_t VBO = 0, VAO = 0, EBO = 0, indexCount = 0;
                 uint32_t id;
@@ -110,6 +122,8 @@ namespace engine
 
         }
 
+        // Physics component: Handles both physics related data, and
+        // collision detection
         struct Physics : public IComponent
         {
             float gravity = 9.8;
