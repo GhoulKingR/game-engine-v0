@@ -133,20 +133,23 @@ void engine::component::Sprite::draw(const glm::mat4 & model) noexcept
 #ifdef NDEBUG
 void engine::component::Sprite::inspector(uint32_t id) noexcept
 {
-    ImGui::Text("Sprite #%u", id);
-    ImGui::Indent();
-    ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
-    transform.inspector(std::format("Sprite #{} ", id).c_str());
-
-    // display paths
-    for (auto [i, texture] : std::ranges::views::zip(std::views::iota(0u), textures))
+    auto s = std::format("Sprite #{}", id);
+    if (ImGui::CollapsingHeader(s.c_str()))
     {
-        auto name = std::format("{} (#{})", texture->path, id);
-        if (ImGui::Selectable(name.c_str(), i == current_texture))
-            current_texture = i;
+        ImGui::Indent();
+        ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
+        transform.inspector(std::format("Sprite #{} ", id).c_str());
+
+        // display paths
+        for (auto [i, texture] : std::ranges::views::zip(std::views::iota(0u), textures))
+        {
+            auto name = std::format("{} (#{})", texture->path, id);
+            if (ImGui::Selectable(name.c_str(), i == current_texture))
+                current_texture = i;
+        }
+        ImGui::Unindent();
+        ImGui::NewLine();
     }
-    ImGui::Unindent();
-    ImGui::NewLine();
 }
 #endif
 

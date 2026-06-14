@@ -28,17 +28,15 @@
 #include <format>
 #include <print>
 
-static SDL_Window *window = nullptr;
-static SDL_GLContext ctx = nullptr;
-static engine::vec2<int> viewport;
+static SDL_Window*          window = nullptr;
+static SDL_GLContext        ctx = nullptr;
+static engine::vec2<int>    viewport;
 
 #ifdef NDEBUG
-static engine::vec2<int> actual{
-    STARTING_WIDTH,
-    STARTING_HEIGHT
-};
+static engine::vec2<int>    actual {STARTING_WIDTH,STARTING_HEIGHT};
 
-static struct {
+static struct
+{
     uint32_t viewTexture    = 0;
     uint32_t FBO            = 0;
     uint32_t RBO1           = 0;
@@ -46,7 +44,8 @@ static struct {
     uint32_t mFBO           = 0;
 } gameview;
 
-static void cleanupTextures() {
+static void cleanupTextures()
+{
     glDeleteFramebuffers(1, &gameview.FBO);
     glDeleteFramebuffers(1, &gameview.mFBO);
     glDeleteRenderbuffers(1, &gameview.RBO1);
@@ -54,7 +53,8 @@ static void cleanupTextures() {
     glDeleteTextures(1, &gameview.viewTexture);
 }
 
-static void constructRenderTexture() {
+static void constructRenderTexture()
+{
     // generate regular frame buffer object for rendering to texture
     glGenFramebuffers(1, &gameview.FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, gameview.FBO);
@@ -88,40 +88,44 @@ static void constructRenderTexture() {
 }
 #endif
 
-void engine::init(const char *_title, uint32_t _width, uint32_t _height) {
+void engine::init(const char *_title, uint32_t _width, uint32_t _height)
+{
     assert(_title != nullptr);
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO))
+    {
         std::println(stderr, "Error :: Failed to initialize SDL: {}", SDL_GetError());
         exit(EXIT_FAILURE);
     }
 
 #if __APPLE__
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,           SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 #endif
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 1);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,    SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION,   3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION,   3);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS,      1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES,      1);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,            1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,              24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE,            8);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE,            8);
 
+    // Have a "(Debug)" tag at the end of the window in engine UI mode
 #ifdef NDEBUG
-    window = SDL_CreateWindow(std::format("{} (Debug)", _title).c_str(),
-        actual.x, actual.y, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+    window = SDL_CreateWindow(std::format("{} (Debug)", _title).c_str(), actual.x, actual.y, SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 #else
     window = SDL_CreateWindow(_title, _width, _height, SDL_WINDOW_OPENGL);
 #endif
-    if (window == nullptr) {
+    if (window == nullptr)
+    {
         std::println(stderr, "Error :: Failed to initialize SDl window: {}", SDL_GetError());
         SDL_Quit();
         exit(EXIT_FAILURE);
     }
 
     ctx = SDL_GL_CreateContext(window);
-    if (ctx == nullptr) {
+    if (ctx == nullptr)
+    {
         std::println(stderr, "Error :: Failed to create GL context: {}", SDL_GetError());
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -147,8 +151,13 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height) {
     viewport.y = _height;
     shader::init();
 
+    // Initialize the things you need for the engine UI. ImGui is only accessible from the Debug mode
+    // Even as a linked library
 #ifdef NDEBUG
-    glViewport(0, 0, actual.x, actual.y);
+    glViewport(0, 0, actual.x, actual.y);   // use the actual viewport rather than the user-requested viewport.
+                                            // We'll be rendering the game to a texture instead of the actual window.
+                                            // all the windows are going to be rendered to the actual window, that's monitored
+                                            // by `actual`.
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     auto &io = ImGui::GetIO();
@@ -164,12 +173,16 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height) {
 
 static engine::Scene* currentScene;
 void engine::loadScene(engine::Scene *_scene)   { currentScene = _scene; }
-void engine::unloadScene()                      { currentScene = nullptr; }
+void engine::unloadScene()                      { currentScene = nullptr; }     // Never used anywhere. But it's here just in case
 
 #ifdef NDEBUG
-static bool paused = false;
-static bool _collision_shapes = false;
-static void guiLoop() {
+static bool paused              = false;
+static bool _collision_shapes   = false;
+bool engine::drawCollisionShapes() { return _collision_shapes; }
+
+static void guiLoop()
+{
+    // All the needed init stuffs, Mostly for ImGui, and the texture we'll be rendering to
     glClearColor(0.1, 0.1, 0.1, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     ImGui_ImplOpenGL3_NewFrame();
@@ -179,8 +192,10 @@ static void guiLoop() {
     // main menu bar
     static bool metrics = false;
     static bool demo_window = false;
-    if (ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu("View")) {
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("View"))
+        {
             ImGui::MenuItem("Show metrics", nullptr, &metrics);
             ImGui::MenuItem("Show ImGui demo window", nullptr, &demo_window);
             ImGui::MenuItem("Draw collision shapes", nullptr, &_collision_shapes);
@@ -189,12 +204,11 @@ static void guiLoop() {
         ImGui::EndMainMenuBar();
     }
 
-    if (metrics) {
+    // menu bar options
+    if (metrics)
         ImGui::ShowMetricsWindow();
-    }
-    if (demo_window) {
+    if (demo_window)
         ImGui::ShowDemoWindow();
-    }
 
     // central game view
     ImGuiWindowFlags gvFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
@@ -202,22 +216,25 @@ static void guiLoop() {
         ImGui::Begin("Game view (paused)", nullptr, gvFlags);
     else
         ImGui::Begin("Game view", nullptr, gvFlags);
+
+    // texture to render
     ImGui::Image(
         reinterpret_cast<void *>(static_cast<intptr_t>(gameview.viewTexture)),
         ImVec2(viewport.x, viewport.y),
         ImVec2(0, 1), ImVec2(1, 0));
     ImGui::End();
 
+    // start rendering every other inspector window
     currentScene->_inspector();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-bool engine::drawCollisionShapes() { return _collision_shapes; }
 #endif
 
-static void gameLoop(float deltaTime) {
+static void gameLoop(float deltaTime)
+{
     glViewport(0, 0, viewport.x, viewport.y);
 #ifdef NDEBUG
     glBindFramebuffer(GL_FRAMEBUFFER, gameview.mFBO);
@@ -226,7 +243,8 @@ static void gameLoop(float deltaTime) {
     glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (currentScene != nullptr) {
+    if (currentScene != nullptr)
+    {
 #ifdef NDEBUG
         if (!paused) currentScene->_update(deltaTime);
 #else
@@ -238,79 +256,83 @@ static void gameLoop(float deltaTime) {
 #ifdef NDEBUG
     glBindFramebuffer(GL_READ_FRAMEBUFFER, gameview.mFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gameview.FBO);
-    glBlitFramebuffer(
-            0, 0, viewport.x, viewport.y,
-            0, 0, viewport.x, viewport.y,
-            GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
+    glBlitFramebuffer(0, 0, viewport.x, viewport.y,
+                      0, 0, viewport.x, viewport.y,
+                      GL_COLOR_BUFFER_BIT, GL_LINEAR);
     glViewport(0, 0, actual.x, actual.y);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 #endif
 }
 
 static bool running = true;
-static void processInput() {
+
+// process engine-level inputs. and forward the keyboard controls to `control`
+// module
+static void processInput()
+{
     SDL_Event _event;
-    while (SDL_PollEvent(&_event)) {
+    while (SDL_PollEvent(&_event))
+    {
 #ifdef NDEBUG
         ImGui_ImplSDL3_ProcessEvent(&_event);
 #endif
-        if (_event.type == SDL_EVENT_QUIT) {
+        if (_event.type == SDL_EVENT_QUIT)
             running = false;
-        }
-        else if (_event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-                 _event.window.windowID == SDL_GetWindowID(window)) {
+        else if (_event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && _event.window.windowID == SDL_GetWindowID(window))  // stop running the game
             running = false;
-        }
-        else if (_event.type == SDL_EVENT_WINDOW_RESIZED) {
+        else if (_event.type == SDL_EVENT_WINDOW_RESIZED)
 #ifdef NDEBUG
+        {
             SDL_GetWindowSizeInPixels(window, &(actual.x), &(actual.y));
             glViewport(0, 0, actual.x, actual.y);
         }
-        else if(_event.type == SDL_EVENT_KEY_UP) {
-            if (_event.key.key == SDLK_BACKSLASH) {
+        else if(_event.type == SDL_EVENT_KEY_UP && _event.key.key == SDLK_BACKSLASH)        // backslash pause only accessible in debug mode 
+        {
                 paused = !paused;
-            }
         }
 #else
+        {
             SDL_GetWindowSizeInPixels(window,
                     &(viewport.x), &(viewport.y));
             glViewport(0, 0, viewport.x, viewport.y);
         }
 #endif
 
-        if (_event.type == SDL_EVENT_KEY_DOWN ||
-            _event.type == SDL_EVENT_KEY_UP)
+        if (_event.type == SDL_EVENT_KEY_DOWN || _event.type == SDL_EVENT_KEY_UP)
         {
             engine::controls::update(_event);
         }
     }
 }
 
-void engine::start() {
-    auto lastTime = std::chrono::steady_clock::now();
-    while (running) {
+void engine::start()
+{
+    auto lastTime = std::chrono::steady_clock::now();       // deltaTime calculations
+    while (running)
+    {
         auto currentTime = std::chrono::steady_clock::now();
         processInput();
         gameLoop(std::chrono::duration<float>(currentTime - lastTime).count());
         lastTime = currentTime;
 #ifdef NDEBUG
-        guiLoop();
+        guiLoop();      // TODO: add null check for the currentScene variable so it doesn't cause a segfault
 #endif
         SDL_GL_SwapWindow(window);
-        controls::clearFrameStates();
+        controls::clearFrameStates();   // if not action states start bleeding into each other
     }
 }
 
-glm::mat4 engine::aspectRatio() {
-    auto pixelSize = 1.0f / glm::vec2(viewport.x, viewport.y);
-    auto scale = glm::identity<glm::mat4>();
-    scale = glm::scale(scale, glm::vec3(
-        pixelSize.x * 2.0f, pixelSize.y * 2.0f, 1.0));
+// return scaling matrix to use for fitting the units to per-pixel
+glm::mat4 engine::aspectRatio()
+{
+    auto pixelSize  = 1.0f / glm::vec2(viewport.x, viewport.y);
+    auto scale      = glm::identity<glm::mat4>();
+    scale           = glm::scale(scale, glm::vec3(pixelSize.x * 2.0f, pixelSize.y * 2.0f, 1.0));
     return scale;
 }
 
-void engine::cleanup() {
+void engine::cleanup()
+{
 #ifdef NDEBUG
     cleanupTextures();
 
