@@ -33,8 +33,8 @@ namespace engine
 
         struct Component
         {
-            bool            hidden = false;
-            virtual void    draw(const glm::mat4&) noexcept {}
+            bool hidden = false;
+            virtual void draw(const glm::mat4&) noexcept {}
             virtual ~Component() = default;
 #ifdef NDEBUG
             virtual void    inspector(uint32_t) noexcept {}
@@ -43,9 +43,9 @@ namespace engine
 
         struct Sprite : public Component
         {
-            Transform                           transform;
-            uint32_t                            current_texture = 0;
-            void                                draw(const glm::mat4 &) noexcept override;
+            Transform   transform;
+            uint32_t    current_texture = 0;
+            void draw(const glm::mat4 &) noexcept override;
 
             Sprite(const Sprite &) = delete;
             Sprite operator=(const Sprite &) = delete;
@@ -55,17 +55,17 @@ namespace engine
             ~Sprite();
 
         private:
-            vec2<int>                               size{0, 0};
-            static inline uint32_t                  objCount = 0;
-            uint32_t                                VBO = 0,
-                                                    EBO = 0,
-                                                    VAO = 0,
-                                                    indexCount = 0;
-            std::vector<Texture *>   textures;
+            vec2<int>               size{0, 0};
+            static inline uint32_t  objCount = 0;
+            uint32_t                VBO = 0,
+                                    EBO = 0,
+                                    VAO = 0,
+                                    indexCount = 0;
+            std::vector<Texture *>  textures;
 
 #ifdef NDEBUG
         public:
-            void                                inspector(uint32_t) noexcept override;
+            void inspector(uint32_t) noexcept override;
 #endif
         };
 
@@ -74,10 +74,10 @@ namespace engine
             void setTimeout(std::function<void()>, uint32_t duration_ms, uint32_t times = 1) noexcept;
             void draw(const glm::mat4 &) noexcept override; // hijack `draw` function for poll
         private:
-            std::chrono::time_point<std::chrono::system_clock> target;
-            uint32_t                count = 0,
-                                    _duration = 0;
-            std::function<void()>   lambda = nullptr;
+            std::chrono::time_point<std::chrono::system_clock>  target;
+            uint32_t                                            count = 0,
+                                                                _duration = 0;
+            std::function<void()>                               lambda = nullptr;
         };
 
         namespace collision
@@ -87,9 +87,9 @@ namespace engine
 
             struct Box
             {
-                Transform transform;
-                Object *parent;
-                vec2<float> size {0.0f, 0.0f};
+                Transform    transform;
+                Object      *parent;
+                vec2<float>  size {0.0f, 0.0f};
                 Shape checkCollision() const noexcept;
 
                 Box(Object *);

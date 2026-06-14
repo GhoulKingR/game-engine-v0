@@ -9,7 +9,7 @@
 
 namespace fs = std::filesystem;
 
-engine::Texture::Texture(const char *path)
+engine::Texture::Texture(const char *path) noexcept
 : path(path)
 {
     int width, height, nrChannels;
