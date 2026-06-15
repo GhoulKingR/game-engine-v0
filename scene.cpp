@@ -11,6 +11,7 @@ static engine::Scene* currentScene;
 void engine::scene::_inspector()
 {
     static Object *selected = nullptr;
+
     ImGui::Begin("Scene tree");
     for (auto &obj : currentScene->objects)
     {
@@ -19,8 +20,9 @@ void engine::scene::_inspector()
             selected = obj;
     }
     ImGui::End();
+
     if (selected != nullptr)
-        selected->_inspector();
+        object::_inspector(selected);
 }
 #endif
 
@@ -37,7 +39,7 @@ void engine::scene::_loop(float deltaTime, bool paused)
     }
 
     for (auto &obj : currentScene->objects)
-        obj->_draw();
+        object::_draw(obj);
 }
 
 // Never used anywhere. But it's here just in case

@@ -12,7 +12,7 @@
 
 namespace engine
 {
-    class Object;
+    struct Object;
 
     namespace component
     {

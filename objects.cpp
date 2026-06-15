@@ -9,31 +9,34 @@
 #include "imgui/imgui.h"
 #endif
 
-namespace engine {
-    Object::Object(const char *name) {
-        if (name == nullptr) {
-            objectCount++;
-            this->name = std::format("Object #{}", objectCount);
-        } else {
-            this->name = name;
-        }
+engine::Object::Object(const char *name) {
+    if (name == nullptr) {
+        objectCount++;
+        this->name = std::format("Object #{}", objectCount);
+    } else {
+        this->name = name;
     }
+}
 
-    void Object::_draw() noexcept {
-        auto model = transform.model();
-        for (auto &_comp : components)
-            _comp->draw(model);
-    }
+void engine::object::_draw(Object *obj) noexcept
+{
+    auto model = obj->transform.model();
+    for (auto &_comp : obj->components)
+        _comp->draw(model);
+}
 
 #ifdef NDEBUG
-    void Object::_inspector() noexcept {
-        uint32_t i = 0;
-        ImGui::Begin("Inspector");
-        ImGui::SeparatorText(name.c_str());
-        transform.inspector();
-        for (auto &_comp : components)
-            _comp->inspector(++i);
-        ImGui::End();
-    }
-#endif
+void engine::object::_inspector(Object *obj) noexcept
+{
+    uint32_t i = 0;
+
+    ImGui::Begin("Inspector");
+    ImGui::SeparatorText(obj->name.c_str());
+    obj->transform.inspector();
+
+    for (auto &_comp : obj->components)
+        _comp->inspector(++i);
+
+    ImGui::End();
 }
+#endif

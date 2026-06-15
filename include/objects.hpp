@@ -6,23 +6,23 @@
 
 namespace engine
 {
-    class Object
+    struct Object
     {
-        static inline uint32_t objectCount = 0;
-
-    protected:
-        std::vector<engine::component::IComponent *> components;
-
-    public:
-        std::string             name;
-        component::Transform    transform;
+        std::vector<engine::component::IComponent *>    components;
+        std::string                                     name;
+        component::Transform                            transform;
         virtual void update(float) {}
-                void _draw()        noexcept;
         Object(const char *name = nullptr);
-        ~Object() = default;
 
-#ifdef NDEBUG
-        void _inspector() noexcept;
-#endif
+    private:
+        static inline uint32_t objectCount = 0;
     };
+
+    namespace object
+    {
+        void _draw(Object *) noexcept;
+#ifdef NDEBUG
+        void _inspector(Object *) noexcept;
+#endif
+    }
 }

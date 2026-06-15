@@ -19,6 +19,8 @@ namespace engine {
         void unload();
 
         void _loop(float, bool = false);
+#ifdef NDEBUG
         void _inspector();
+#endif
     }
 }
