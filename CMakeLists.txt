@@ -77,7 +77,6 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Wall
     -Wextra
     -fno-exceptions
-    -fno-rtti
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

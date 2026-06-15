@@ -171,9 +171,6 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height)
 #endif
 }
 
-static engine::Scene* currentScene;
-void engine::loadScene(engine::Scene *_scene)   { currentScene = _scene; }
-void engine::unloadScene()                      { currentScene = nullptr; }     // Never used anywhere. But it's here just in case
 
 #ifdef NDEBUG
 static bool paused              = false;
@@ -225,7 +222,7 @@ static void guiLoop()
     ImGui::End();
 
     // start rendering every other inspector window
-    currentScene->_inspector();
+    engine::scene::_inspector();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -243,16 +240,7 @@ static void gameLoop(float deltaTime)
     glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (currentScene != nullptr)
-    {
-#ifdef NDEBUG
-        if (!paused) currentScene->_update(deltaTime);
-#else
-        currentScene->_update(deltaTime);
-#endif
-        currentScene->_draw();
-    }
-
+    engine::scene::_loop(deltaTime, paused);
 #ifdef NDEBUG
     glBindFramebuffer(GL_READ_FRAMEBUFFER, gameview.mFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gameview.FBO);

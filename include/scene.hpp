@@ -4,18 +4,21 @@
 #include <vector>
 
 namespace engine {
-    class Scene {
-        virtual void init() {}
-
-    protected:
+    // Game scene (collection of objects for rendering)
+    struct Scene {
         std::vector<Object *> objects;
-
-    public:
         virtual void update(float) {}
-        void _update(float);
-        void _draw() noexcept;
-#ifdef NDEBUG
-        void _inspector();
-#endif
     };
+
+    // helper functions for managing the scene data
+    // The only ones needed to be used is load and unload.
+    namespace scene {
+        // load a scene object to view
+        void load(Scene *);
+        // unload the current scene object to view
+        void unload();
+
+        void _loop(float, bool = false);
+        void _inspector();
+    }
 }

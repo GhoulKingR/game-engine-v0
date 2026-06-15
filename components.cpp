@@ -6,7 +6,6 @@
 #include <objects.hpp>
 
 #include <utility>
-#include <variant>
 #include <vector>
 #include <ranges>
 #include <imgui/imgui.h>
@@ -218,11 +217,18 @@ void engine::component::Physics::inspector(uint32_t id) noexcept
     if (ImGui::CollapsingHeader(std::format("Physics #{}", id).c_str()))
     {
         ImGui::Indent();
+
+        // it makes sense that the hidden checkbox is only visible if 
+        // collision shapes are drawn. It's also easy to implement so 
+        // no harm done really
+        if (drawCollisionShapes())
+            ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
+
         ImGui::DragFloat("gravity", &gravity, 0.01f);
         
         // display inspector panels for all collision shapes
-        for (auto &_s : collisionShapes)
-            std::visit([](auto &c){ c->inspector(); }, _s);
+        for (auto &c : collisionShapes)
+            c->inspector();
 
         ImGui::Unindent();
         ImGui::NewLine();
@@ -231,11 +237,9 @@ void engine::component::Physics::inspector(uint32_t id) noexcept
 
 void engine::component::Physics::draw(const glm::mat4 & model) noexcept
 {
-    // TODO: add `hidden` field to physics inspector panel.
-    // Draw the collision shapes
     if (!hidden && drawCollisionShapes())
-        for (auto &_s : collisionShapes)
-            std::visit([model](auto &c) { c->draw(model); }, _s);
+        for (auto &c : collisionShapes)
+            c->draw(model);
 }
 #endif
 
@@ -249,6 +253,8 @@ void engine::component::Timer::setTimeout(std::function<void()> callback,
     _duration   = duration_ms;
 }
 
+// Timer uses the draw method to poll its internals to simulate an 
+// async event loop.
 void engine::component::Timer::draw(const glm::mat4 &) noexcept
 {
     if (count > 0 && lambda != nullptr)
@@ -272,7 +278,7 @@ void engine::component::Timer::draw(const glm::mat4 &) noexcept
     }
 }
 
-static inline std::vector<engine::component::collision::Shape> allShapes;
+static inline std::vector<engine::component::collision::ICollisionShape*> allShapes;
 
 engine::component::collision::Box::Box(Object *parent)
 : parent(parent)
@@ -305,7 +311,8 @@ engine::component::collision::Box::Box(Object *parent)
 #endif
 }
 
-engine::component::collision::Shape engine::component::collision::Box::checkCollision() const noexcept
+engine::component::collision::ICollisionShape*
+engine::component::collision::Box::checkCollision() const noexcept
 {
     auto _mTranslate = parent->transform.translate + transform.translate;
     float myLeft   = _mTranslate.x - (this->size.x / 2.0f);
@@ -315,18 +322,17 @@ engine::component::collision::Shape engine::component::collision::Box::checkColl
 
     for (auto &otherShape : allShapes)
     {
-        if (std::holds_alternative<Box *>(otherShape))
-        {
-            auto otherBox = std::get<Box *>(otherShape);
-            if (otherBox == this) continue;
+        if (otherShape == this) continue;
 
+        if (auto otherBox = dynamic_cast<Box*>(otherShape))
+        {
             auto _oTranslate = otherBox->parent->transform.translate + otherBox->transform.translate;
             float otherLeft   = _oTranslate.x - (otherBox->size.x / 2.0f);
             float otherRight  = _oTranslate.x + (otherBox->size.x / 2.0f);
             float otherTop    = _oTranslate.y + (otherBox->size.y / 2.0f);
             float otherBottom = _oTranslate.y - (otherBox->size.y / 2.0f);
 
-            // AABB Separation Axis Theorem
+            // Using AABB Separation Axis Theorem to detect collision.
             bool overlapX = (myLeft <= otherRight) && (myRight >= otherLeft);
             bool overlapY = (myBottom <= otherTop) && (myTop >= otherBottom);
 
@@ -342,14 +348,8 @@ engine::component::collision::Shape engine::component::collision::Box::checkColl
 #ifdef NDEBUG
 engine::component::collision::Box::~Box()
 {
-
     // deletes current element from the allShapes vector.
-    // It just checks whether the shape is a Box pointer, and 
-    // if it is it compares whether the address of the pointer 
-    // is the same as `this`, and removes it.
-    std::erase_if(allShapes, [this](auto &val){
-        return std::holds_alternative<Box *>(val) && std::get<Box *>(val) == this;
-    });
+    std::erase(allShapes, this);
 
     if (VBO != 0)
         glDeleteBuffers(1, &VBO);
@@ -373,13 +373,7 @@ engine::component::collision::Box::Box(Box &&_other)
     indexCount      = _other.indexCount;
 
     // replace old shape with new instance in allShapes vector.
-    // Similar logic of the previous `erase_if`. Only that this one 
-    // replaces the "element to delete" with the new object.
-    std::replace_if(allShapes.begin(), allShapes.end(),
-        [&_other](auto &val){
-            return  std::holds_alternative<Box *>(val) &&
-                    std::get<Box *>(val) == &_other;
-        }, this);
+    std::replace(allShapes.begin(), allShapes.end(), &_other, this);
 }
 
 engine::component::collision::Box&
@@ -397,13 +391,7 @@ engine::component::collision::Box::operator=(Box &&_other)
     indexCount      = _other.indexCount;
 
     // replace old shape with new instance in allShapes vector.
-    // Similar logic of the previous `erase_if`. Only that this one 
-    // replaces the "element to delete" with the new object.
-    std::replace_if(allShapes.begin(), allShapes.end(),
-        [&_other](auto &val){
-            return  std::holds_alternative<Box *>(val) &&
-                    std::get<Box *>(val) == &_other;
-        }, this);
+    std::replace(allShapes.begin(), allShapes.end(), &_other, this);
     return *this;
 }
 

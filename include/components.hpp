@@ -5,7 +5,6 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include <unistd.h>
-#include <variant>
 #include <vector>
 
 #include "common.hpp"
@@ -38,7 +37,6 @@ namespace engine
         {
             bool hidden = false;
             virtual void draw(const glm::mat4&) noexcept {};
-            virtual ~IComponent() {};
 #ifdef NDEBUG
             virtual void inspector(uint32_t) noexcept = 0;
 #endif
@@ -87,18 +85,24 @@ namespace engine
 
         namespace collision
         {
-            struct  Box;
+            // Collision shape interface
+            struct ICollisionShape
+            {
+                virtual ICollisionShape* checkCollision() const noexcept = 0;
+#ifdef NDEBUG
+                virtual void draw(const glm::mat4 &) const noexcept = 0;
+                virtual void inspector() noexcept = 0;
+#endif
+            };
 
-            // TODO: Convert this to interface. (ICollisionShape?)
-            using   Shape = std::variant<Box*>;
 
             // Box collision shape
-            struct Box
+            struct Box : public ICollisionShape
             {
-                Transform    transform;
-                Object      *parent;
-                vec2<float>  size {0.0f, 0.0f};
-                Shape checkCollision() const noexcept;
+                Transform        transform;
+                Object*          parent;
+                vec2<float>      size {0.0f, 0.0f};
+                ICollisionShape* checkCollision() const noexcept override;
 
                 Box(Object *);
                 Box(Box &&);
@@ -107,8 +111,8 @@ namespace engine
                 Box &operator=(const Box &) = delete;
 #ifdef NDEBUG
                 ~Box();
-                void draw(const glm::mat4 &) const noexcept;
-                void inspector() noexcept;
+                void draw(const glm::mat4 &) const noexcept override;
+                void inspector() noexcept override;
 #endif
 
                 // This is required even when it's not needed because it can cause
@@ -127,7 +131,7 @@ namespace engine
         struct Physics : public IComponent
         {
             float gravity = 9.8;
-            std::vector<collision::Shape> collisionShapes;
+            std::vector<collision::ICollisionShape *> collisionShapes;
 
 #ifdef NDEBUG
             void draw(const glm::mat4 &) noexcept override;
