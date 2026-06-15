@@ -1,6 +1,7 @@
 #pragma once
 
 #include "components.hpp"
+#include <functional>
 #include <string>
 #include <cstdint>
 
@@ -11,7 +12,7 @@ namespace engine
         std::vector<engine::component::IComponent *>    components;
         std::string                                     name;
         component::Transform                            transform;
-        virtual void update(float) {}
+        std::function<void(float)>                      update = nullptr;
         Object(const char *name = nullptr);
 
     private:

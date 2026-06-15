@@ -1,13 +1,14 @@
 #pragma once
 
 #include "objects.hpp"
+#include <functional>
 #include <vector>
 
 namespace engine {
     // Game scene (collection of objects for rendering)
     struct Scene {
-        std::vector<Object *> objects;
-        virtual void update(float) {}
+        std::vector<Object *>       objects;
+        std::function<void(float)>  update = nullptr;
     };
 
     // helper functions for managing the scene data

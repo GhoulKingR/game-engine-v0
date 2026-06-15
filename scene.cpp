@@ -33,9 +33,9 @@ void engine::scene::_loop(float deltaTime, bool paused)
     if (!paused)
 #endif
     {
-        currentScene->update(deltaTime);
+        if (currentScene->update) currentScene->update(deltaTime);
         for (auto &obj : currentScene->objects)
-            obj->update(deltaTime);
+            if (obj->update) obj->update(deltaTime);
     }
 
     for (auto &obj : currentScene->objects)
