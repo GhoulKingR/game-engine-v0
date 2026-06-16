@@ -17,7 +17,9 @@ isActionJustPressed()
 
 ## Engine API
 
+```
 engine::init()
 engine::loadScene()
 engine::start()
 engine::cleanup()
+```

@@ -425,8 +425,6 @@ The input system currently supports:
 * action registration
 * action press detection
 * frame-based state clearing
-```
-
 
 ## Current Modules
 
