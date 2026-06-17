@@ -307,6 +307,12 @@ Current collision support includes:
 
 - `Box`
 
+They can be initialized using the `physics.newComponent<CollisionShape>(args)` method. For example:
+
+```cpp
+engine::component::collision::Box& hitBox = physics.newComponent<engine::component::collision::Box>(this);
+```
+
 ### Rendering Pipeline
 
 Rendering flows through the engine in multiple stages:
