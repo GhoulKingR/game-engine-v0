@@ -38,10 +38,15 @@ namespace engine
         // Interface for components
         struct IComponent
         {
-            virtual ~IComponent(){}
-            virtual void draw(const glm::mat4&) noexcept {};
+            IComponent()                                = default;
+            virtual ~IComponent()                       = default;
+            IComponent(const IComponent&)               = delete;
+            IComponent &operator=(const IComponent&)    = delete;
+            IComponent(IComponent&&)                    = delete;
+            IComponent &operator=(IComponent&&)         = delete;
+            virtual void draw(const glm::mat4&) noexcept {}
 #ifdef NDEBUG
-            virtual void inspector(uint32_t) noexcept = 0;
+            virtual void inspector(uint32_t) noexcept {}
 #endif
         };
 
@@ -56,12 +61,8 @@ namespace engine
             uint32_t    current_texture = 0;
             void draw(const glm::mat4 &) noexcept override;
 
-            Sprite(const Sprite &)           = delete;
-            Sprite operator=(const Sprite &) = delete;
-            Sprite(Sprite &&)                = delete;
-            Sprite &operator=(Sprite &&)     = delete;
-            Sprite(int w, int h, std::vector<Texture *>);
             ~Sprite();
+            Sprite(int w, int h, std::vector<Texture *>);
 
         private:
             vec2<int>               size{0, 0};
@@ -95,27 +96,28 @@ namespace engine
             // Collision shape interface
             struct ICollisionShape
             {
-                virtual ~ICollisionShape(){}
+                ICollisionShape()                                   = default;
+                virtual ~ICollisionShape()                          = default;
+                ICollisionShape(const ICollisionShape&)             = delete;
+                ICollisionShape &operator=(const ICollisionShape&)  = delete;
+                ICollisionShape(ICollisionShape&&)                  = delete;
+                ICollisionShape &operator=(ICollisionShape&&)       = delete;
+
                 virtual ICollisionShape* checkCollision() const noexcept = 0;
 #ifdef NDEBUG
-                virtual void draw(const glm::mat4 &) const noexcept = 0;
-                virtual void inspector() noexcept = 0;
+                virtual void draw(const glm::mat4 &) const noexcept {}
+                virtual void inspector() noexcept {}
 #endif
             };
 
             // Box collision shape
             struct Box : public ICollisionShape
             {
+                Box(Object *);
                 Transform        transform;
                 Object*          parent;
                 vec2<float>      size {0.0f, 0.0f};
                 ICollisionShape* checkCollision() const noexcept override;
-
-                Box(Object *);
-                Box(Box &&) = delete;
-                Box &operator=(Box &&) = delete;
-                Box(const Box &) = delete;
-                Box &operator=(const Box &) = delete;
 #ifdef NDEBUG
                 ~Box();
                 void draw(const glm::mat4 &) const noexcept override;
