@@ -19,9 +19,11 @@ namespace engine {
         // unload the current scene object to view
         void unload();
 
-        void _loop(float, bool = false);
 #ifdef NDEBUG
         void _inspector();
+        void _loop(float, bool = false);
+#else
+        void _loop(float);
 #endif
     }
 }

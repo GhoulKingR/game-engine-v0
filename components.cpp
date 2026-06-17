@@ -1,13 +1,10 @@
-#include <array>
 #include <components.hpp>
 #include <cstdint>
 #include <functional>
-#include <initializer_list>
 #include <objects.hpp>
 
 #include <utility>
 #include <vector>
-#include <ranges>
 #include <imgui/imgui.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -15,6 +12,7 @@
 #ifdef NDEBUG
 #include <string>
 #include <format>
+#include <ranges>
 #endif
 
 #include "engine.hpp"
@@ -24,32 +22,6 @@
 #include <glad/glad.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-
-// generate a quad mesh. Doesn't actually set it up in OpenGL.
-// It returns the vertices and indices for the quad mesh.
-//
-// Note: The indices are arranged in a way that if you render the 
-// mesh with GL_LINES, it gives an outline of the quad without the 
-// diagonal line.
-static std::pair<std::vector<float>, std::vector<uint32_t>>
-genQuad(float width, float height)
-{
-    const auto h_width = width / 2.0f;
-    const auto h_height = height / 2.0f;
-
-    return {
-        {
-            -h_width, -h_height, 0.0f, 0.0f,
-             h_width, -h_height, 1.0f, 0.0f,
-            -h_width,  h_height, 0.0f, 1.0f,
-             h_width,  h_height, 1.0f, 1.0f,
-         },
-         {2, 0, 1, 1, 3, 2}
-    };
-}
-// TODO: Make this ^^ more efficient. I want to setup a way that you can just
-// reuse the same buffer object to render multiple sprites. just tweaking the 
-// scaling to get different size quads.
 
 // Start Transform ----------------------------------------------------------------------------------------
 engine::component::Transform::Transform(vec2<float> _scale, vec2<float> _translate, float _rotate)
@@ -84,9 +56,9 @@ void engine::component::Transform::inspector(const char *prefix) noexcept
             ImGui::Unindent();
             ImGui::NewLine();
         }
-        
-        // If prefix is not nullptr, that means it's part of a component 
-        // So we have this branch so it renders the elements in a more 
+
+        // If prefix is not nullptr, that means it's part of a component
+        // So we have this branch so it renders the elements in a more
         // component-friendly manner.
     }
 }
@@ -113,41 +85,24 @@ engine::component::Sprite::Sprite(int width, int height, std::vector<Texture *> 
     // load textures
     stbi_set_flip_vertically_on_load(true);
     textures = std::move(_tex);
-
-    auto [vertices, indices] = genQuad(size.x, size.y);
-
-    // create and setup buffer objects and the array object.
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), indices.data(), GL_STATIC_DRAW);
-
-    // make sure they're fed into the right vert shader input.
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    indexCount = indices.size();
 }
 
 void engine::component::Sprite::draw(const glm::mat4 & model) noexcept
 {
     if (!hidden)
     {
+        auto m = glm::identity<glm::mat4>();
+        m = glm::scale(m, {size.x, size.y, 1.0f});
+        m = model * transform.model() * m;
         auto shdr = shader::default_shader();
         shader::use(shdr);
         shader::setMat4(shdr, "aspectRatio", aspectRatio());
         shader::setInt(shdr, "useColor", 0);
-        shader::setMat4(shdr, "model", model * transform.model());
+        shader::setMat4(shdr, "model", m);
 
-        glBindVertexArray(VAO);
+        bindQuad();
         glBindTexture(GL_TEXTURE_2D, textures.at(current_texture)->id);
-        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, indexCount(), GL_UNSIGNED_INT, 0);
     }
 }
 
@@ -159,7 +114,7 @@ void engine::component::Sprite::inspector(uint32_t id) noexcept
     {
         ImGui::Indent();
         ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
-        
+
         // display transform inspector first
         transform.inspector(s.c_str());
 
@@ -175,16 +130,6 @@ void engine::component::Sprite::inspector(uint32_t id) noexcept
     }
 }
 #endif
-
-engine::component::Sprite::~Sprite()
-{
-    if (VBO != 0)
-        glDeleteBuffers(1, &VBO);
-    if (EBO != 0)
-        glDeleteBuffers(1, &EBO);
-    if (VAO != 0)
-        glDeleteVertexArrays(1, &VAO);
-}
 // End Sprite ----------------------------------------------------------------------------------------
 
 // Start Physics ----------------------------------------------------------------------------------------
@@ -195,14 +140,14 @@ void engine::component::Physics::inspector(uint32_t id) noexcept
     {
         ImGui::Indent();
 
-        // it makes sense that the hidden checkbox is only visible if 
-        // collision shapes are drawn. It's also easy to implement so 
+        // it makes sense that the hidden checkbox is only visible if
+        // collision shapes are drawn. It's also easy to implement so
         // no harm done really
         if (drawCollisionShapes())
             ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
 
         ImGui::DragFloat("gravity", &gravity, 0.01f);
-        
+
         // display inspector panels for all collision shapes
         for (auto &c : collisionShapes)
             c->inspector();
@@ -232,7 +177,7 @@ void engine::component::Timer::setTimeout(std::function<void()> callback,
     _duration   = duration_ms;
 }
 
-// Timer uses the draw method to poll its internals to simulate an 
+// Timer uses the draw method to poll its internals to simulate an
 // async event loop.
 void engine::component::Timer::draw(const glm::mat4 &) noexcept
 {
@@ -266,30 +211,8 @@ engine::component::collision::Box::Box(Object *parent)
 : parent(parent)
 {
     allShapes.push_back(this);
-
 #ifdef NDEBUG
     id = ++counter;
-    auto [vertices, indices] = genQuad(1, 1);
-
-    // setup VBOs and VAOs for the physics collision shapes when drawn
-    // This only exists in the engine UI so there's no cause for concern 
-    // about optimizations
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), indices.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    indexCount = indices.size();
 #endif
 }
 
@@ -332,13 +255,6 @@ engine::component::collision::Box::~Box()
 {
     // deletes current element from the allShapes vector.
     std::erase(allShapes, this);
-
-    if (VBO != 0)
-        glDeleteBuffers(1, &VBO);
-    if (EBO != 0)
-        glDeleteBuffers(1, &EBO);
-    if (VAO != 0)
-        glDeleteVertexArrays(1, &VAO);
 }
 
 void engine::component::collision::Box::draw(const glm::mat4 &model) const noexcept
@@ -358,8 +274,8 @@ void engine::component::collision::Box::draw(const glm::mat4 &model) const noexc
     m = model * transform.model() * m;
     shader::setMat4(shdr, "model", m);
 
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+    bindQuad();
+    glDrawElements(GL_TRIANGLES, indexCount(), GL_UNSIGNED_INT, 0);
 }
 
 void engine::component::collision::Box::inspector() noexcept
@@ -371,8 +287,5 @@ void engine::component::collision::Box::inspector() noexcept
         transform.inspector(prefix.c_str());
     }
 }
-#else
-engine::component::collision::Box::Box(Box &&) = default;
-engine::component::collision::Box& engine::component::collision::Box::operator=(Box &&) = default;
 #endif
 // Box collider End -----------------------------------------------------------

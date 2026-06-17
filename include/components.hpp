@@ -19,7 +19,7 @@ namespace engine
 
     namespace component
     {
-        // Transform is not a component. Every object and component has a 
+        // Transform is not a component. Every object and component has a
         // transform field in them.
         struct Transform
         {
@@ -60,17 +60,11 @@ namespace engine
             Transform   transform;
             uint32_t    current_texture = 0;
             void draw(const glm::mat4 &) noexcept override;
-
-            ~Sprite();
             Sprite(int w, int h, std::vector<Texture *>);
 
         private:
             vec2<int>               size{0, 0};
             static inline uint32_t  objCount = 0;
-            uint32_t                VBO = 0,
-                                    EBO = 0,
-                                    VAO = 0,
-                                    indexCount = 0;
             std::vector<Texture *>  textures;
 
 #ifdef NDEBUG
@@ -125,15 +119,14 @@ namespace engine
 #endif
 
                 // This is required even when it's not needed because it can cause
-                // runtime overflow errors. I still don't understand how this was an 
+                // runtime overflow errors. I still don't understand how this was an
                 // issue, but it took me days to figure out.
                 //
-                // Note from the future: this happens because NDEBUG isn't used in the 
-                // game development code. So the size of the struct on the game side 
+                // Note from the future: this happens because NDEBUG isn't used in the
+                // game development code. So the size of the struct on the game side
                 // and on the engine becomes different.
                 // TODO: document this ^
             private:
-                uint32_t VBO = 0, VAO = 0, EBO = 0, indexCount = 0;
                 uint32_t id;
                 static inline uint32_t counter = 0;
             };
@@ -175,5 +168,5 @@ namespace engine
 // Not sure if I should do that or not, because it's essentially the same thing as what's here.
 // I don't know really, so:
 //
-// TODO: Find out if it's worth it to move the draw and inspector methods to dedicated system 
+// TODO: Find out if it's worth it to move the draw and inspector methods to dedicated system
 // and implement that if it is.

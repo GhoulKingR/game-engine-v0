@@ -32,6 +32,24 @@ static SDL_Window*          window = nullptr;
 static SDL_GLContext        ctx = nullptr;
 static engine::vec2<int>    viewport;
 
+// TODO: Major bug fix required. All I'm seeing is a black image
+// on the screen.
+static struct
+{
+    uint32_t VBO        = 0;
+    uint32_t EBO        = 0;
+    uint32_t VAO        = 0;
+    uint32_t indexCount = 0;
+} _quad;
+
+uint32_t engine::indexCount() { return _quad.indexCount; }
+void engine::bindQuad()
+{
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _quad.EBO);
+    // glBindBuffer(GL_ARRAY_BUFFER, _quad.VBO);
+    glBindVertexArray(_quad.VAO);
+}
+
 #ifdef NDEBUG
 static engine::vec2<int>    actual {STARTING_WIDTH,STARTING_HEIGHT};
 
@@ -87,6 +105,13 @@ static void constructRenderTexture()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 #endif
+
+static void cleanupQuad()
+{
+    glDeleteBuffers(1, &_quad.VBO);
+    glDeleteBuffers(1, &_quad.EBO);
+    glDeleteVertexArrays(1, &_quad.VAO);
+}
 
 void engine::init(const char *_title, uint32_t _width, uint32_t _height)
 {
@@ -146,6 +171,33 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height)
     }
 
     glEnable(GL_MULTISAMPLE);
+
+    float vertices[] = {
+        -0.5f, -0.5f, 0.0f, 0.0f,
+         0.5f, -0.5f, 1.0f, 0.0f,
+        -0.5f,  0.5f, 0.0f, 1.0f,
+         0.5f,  0.5f, 1.0f, 1.0f,
+    };
+    uint32_t indices[] = {2, 0, 1, 1, 3, 2};
+    _quad.indexCount = sizeof(indices) / sizeof(indices[0]);
+
+    glGenBuffers(1, &_quad.VBO);
+    glGenBuffers(1, &_quad.EBO);
+    glGenVertexArrays(1, &_quad.VAO);
+    glBindVertexArray(_quad.VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, _quad.VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _quad.EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    // Setup the vertex data for the shader input values
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
+    glEnableVertexAttribArray(0);   // aPos
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);   // aTexUV
+
+    glBindVertexArray(0);
 
     viewport.x = _width;
     viewport.y = _height;
@@ -240,8 +292,10 @@ static void gameLoop(float deltaTime)
     glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+#ifndef NDEBUG
+    engine::scene::_loop(deltaTime);
+#else
     engine::scene::_loop(deltaTime, paused);
-#ifdef NDEBUG
     glBindFramebuffer(GL_READ_FRAMEBUFFER, gameview.mFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gameview.FBO);
     glBlitFramebuffer(0, 0, viewport.x, viewport.y,
@@ -274,9 +328,9 @@ static void processInput()
             SDL_GetWindowSizeInPixels(window, &(actual.x), &(actual.y));
             glViewport(0, 0, actual.x, actual.y);
         }
-        else if(_event.type == SDL_EVENT_KEY_UP && _event.key.key == SDLK_BACKSLASH)        // backslash pause only accessible in debug mode 
+        else if(_event.type == SDL_EVENT_KEY_UP && _event.key.key == SDLK_BACKSLASH)        // backslash pause only accessible in debug mode
         {
-                paused = !paused;
+            paused = !paused;
         }
 #else
         {
@@ -321,9 +375,10 @@ glm::mat4 engine::aspectRatio()
 
 void engine::cleanup()
 {
+    cleanupQuad();
+
 #ifdef NDEBUG
     cleanupTextures();
-
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();

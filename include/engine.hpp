@@ -11,4 +11,6 @@ namespace engine {
 #ifdef NDEBUG
     bool drawCollisionShapes();
 #endif
+    void bindQuad();
+    uint32_t indexCount();
 }
