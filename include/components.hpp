@@ -38,7 +38,6 @@ namespace engine
         // Interface for components
         struct IComponent
         {
-            bool hidden = false;
             virtual void draw(const glm::mat4&) noexcept {};
 #ifdef NDEBUG
             virtual void inspector(uint32_t) noexcept = 0;
@@ -48,6 +47,7 @@ namespace engine
         // Sprite component. Allows you to display sprites on the screen
         struct Sprite : public IComponent
         {
+            bool hidden = false;
             Transform   transform;
             uint32_t    current_texture = 0;
             void draw(const glm::mat4 &) noexcept override;
@@ -109,8 +109,8 @@ namespace engine
                 ICollisionShape* checkCollision() const noexcept override;
 
                 Box(Object *);
-                Box(Box &&);
-                Box &operator=(Box &&);
+                Box(Box &&) = delete;
+                Box &operator=(Box &&) = delete;
                 Box(const Box &) = delete;
                 Box &operator=(const Box &) = delete;
 #ifdef NDEBUG
@@ -142,6 +142,7 @@ namespace engine
         // collision detection
         struct Physics : public IComponent
         {
+            bool hidden = false;
             float gravity = 9.8;
 
             template<TCollisionShape Shape, typename... Args>
