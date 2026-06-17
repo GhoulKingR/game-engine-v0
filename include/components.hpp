@@ -4,7 +4,10 @@
 #include <cstdint>
 #include <functional>
 #include <glm/glm.hpp>
+#include <memory>
+#include <type_traits>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
 #include "common.hpp"
@@ -88,6 +91,7 @@ namespace engine
             // Collision shape interface
             struct ICollisionShape
             {
+                virtual ~ICollisionShape(){}
                 virtual ICollisionShape* checkCollision() const noexcept = 0;
 #ifdef NDEBUG
                 virtual void draw(const glm::mat4 &) const noexcept = 0;
@@ -119,10 +123,10 @@ namespace engine
                 // runtime overflow errors. I still don't understand how this was an 
                 // issue, but it took me days to figure out.
                 //
-                // Note from the future: Tuhe issue is from the game space code.
-                // NDEBUG isn't applied there so the difference in size of the struct
-                // between the two code is different enough to cause some data 
-                // to bleed from other variables.
+                // Note from the future: this happens because NDEBUG isn't used in the 
+                // game development code. So the size of the struct on the game side 
+                // and on the engine becomes different.
+                // TODO: document this ^
             private:
                 uint32_t VBO = 0, VAO = 0, EBO = 0, indexCount = 0;
                 uint32_t id;
@@ -131,17 +135,29 @@ namespace engine
 
         }
 
+        template<typename T>
+        concept TCollisionShape = std::is_base_of_v<collision::ICollisionShape, T>;
+
         // Physics component: Handles both physics related data, and
         // collision detection
         struct Physics : public IComponent
         {
             float gravity = 9.8;
-            std::vector<collision::ICollisionShape *> collisionShapes;
+
+            template<TCollisionShape Shape, typename... Args>
+            Shape &newComponent(Args&&... args) {
+                auto _obj = std::make_unique<Shape>(args...);
+                auto &ref = *_obj.get();
+                auto &obj = collisionShapes.emplace_back(std::move(_obj));
+                return ref;
+            }
 
 #ifdef NDEBUG
             void draw(const glm::mat4 &) noexcept override;
             void inspector(uint32_t) noexcept override;
 #endif
+        private:
+            std::vector<std::unique_ptr<collision::ICollisionShape>> collisionShapes;
         };
     }
 

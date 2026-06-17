@@ -21,9 +21,9 @@ namespace engine
 
     namespace object
     {
-        void _draw(Object *) noexcept;
+        void _draw(Object *)        noexcept;
 #ifdef NDEBUG
-        void _inspector(Object *) noexcept;
+        void _inspector(Object *)   noexcept;
 #endif
     }
 }

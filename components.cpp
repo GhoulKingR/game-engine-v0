@@ -14,7 +14,6 @@
 
 #ifdef NDEBUG
 #include <string>
-#include <algorithm>
 #include <format>
 #endif
 
@@ -48,7 +47,11 @@ genQuad(float width, float height)
          {2, 0, 1, 1, 3, 2}
     };
 }
+// TODO: Make this ^^ more efficient. I want to setup a way that you can just
+// reuse the same buffer object to render multiple sprites. just tweaking the 
+// scaling to get different size quads.
 
+// Start Transform ----------------------------------------------------------------------------------------
 engine::component::Transform::Transform(vec2<float> _scale, vec2<float> _translate, float _rotate)
 {
     translate   = _translate;
@@ -98,7 +101,10 @@ glm::mat4 engine::component::Transform::model() const noexcept
     model = glm::scale(model,       glm::vec3(scale.x, scale.y, 1.0f)                                   );
     return model;
 }
+// End Transform ----------------------------------------------------------------------------------------
 
+
+// Start Sprite ----------------------------------------------------------------------------------------
 engine::component::Sprite::Sprite(int width, int height, std::vector<Texture *> _tex)
 {
     current_texture = 0;
@@ -170,6 +176,12 @@ void engine::component::Sprite::inspector(uint32_t id) noexcept
 }
 #endif
 
+// I want to make the sprite an immovable object to enforce pass by pointers 
+// but I'm not sure if that'll be good for performance. It'll also just enforce
+// unique_ptr storage, which I just learned would have no performance cost.
+//
+// TODO: Update the game to use a unique_ptr setup and delete the 
+// copy and move constructors.
 engine::component::Sprite::Sprite(Sprite &&_other)
 {
     size            = std::move(_other.size);
@@ -210,7 +222,9 @@ engine::component::Sprite::~Sprite()
     if (VAO != 0)
         glDeleteVertexArrays(1, &VAO);
 }
+// End Sprite ----------------------------------------------------------------------------------------
 
+// Start Physics ----------------------------------------------------------------------------------------
 #ifdef NDEBUG
 void engine::component::Physics::inspector(uint32_t id) noexcept
 {
@@ -242,7 +256,9 @@ void engine::component::Physics::draw(const glm::mat4 & model) noexcept
             c->draw(model);
 }
 #endif
+// End Phyiscs ----------------------------------------------------------------------------------------
 
+// Start Timer ----------------------------------------------------------------------------------------
 void engine::component::Timer::setTimeout(std::function<void()> callback,
                                           uint32_t duration_ms,
                                           uint32_t times) noexcept
@@ -277,7 +293,10 @@ void engine::component::Timer::draw(const glm::mat4 &) noexcept
         }
     }
 }
+// End Timer ----------------------------------------------------------------------------------------
 
+/// Physics collisions
+// Box collider start -----------------------------------------------------------
 static inline std::vector<engine::component::collision::ICollisionShape*> allShapes;
 
 engine::component::collision::Box::Box(Object *parent)
@@ -359,42 +378,6 @@ engine::component::collision::Box::~Box()
         glDeleteVertexArrays(1, &VAO);
 }
 
-engine::component::collision::Box::Box(Box &&_other)
-{
-    id              = _other.id;
-    size            = std::move(_other.size);
-    transform       = _other.transform;
-    VBO             = _other.VBO;
-    EBO             = _other.EBO;
-    VAO             = _other.VAO;
-    _other.VBO      = 0;
-    _other.VAO      = 0;
-    _other.EBO      = 0;
-    indexCount      = _other.indexCount;
-
-    // replace old shape with new instance in allShapes vector.
-    std::replace(allShapes.begin(), allShapes.end(), &_other, this);
-}
-
-engine::component::collision::Box&
-engine::component::collision::Box::operator=(Box &&_other)
-{
-    id              = _other.id;
-    size            = std::move(_other.size);
-    transform       = _other.transform;
-    VBO             = _other.VBO;
-    EBO             = _other.EBO;
-    VAO             = _other.VAO;
-    _other.VBO      = 0;
-    _other.VAO      = 0;
-    _other.EBO      = 0;
-    indexCount      = _other.indexCount;
-
-    // replace old shape with new instance in allShapes vector.
-    std::replace(allShapes.begin(), allShapes.end(), &_other, this);
-    return *this;
-}
-
 void engine::component::collision::Box::draw(const glm::mat4 &model) const noexcept
 {
     glEnable(GL_BLEND);
@@ -429,3 +412,4 @@ void engine::component::collision::Box::inspector() noexcept
 engine::component::collision::Box::Box(Box &&) = default;
 engine::component::collision::Box& engine::component::collision::Box::operator=(Box &&) = default;
 #endif
+// Box collider End -----------------------------------------------------------
