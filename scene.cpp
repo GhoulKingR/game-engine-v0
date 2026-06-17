@@ -5,11 +5,12 @@
 
 #include <scene.hpp>
 
-static engine::Scene* currentScene;
+static engine::Scene* currentScene = nullptr;
 
 #ifdef NDEBUG
 void engine::scene::_inspector()
 {
+    if (currentScene == nullptr) return;
     static Object *selected = nullptr;
 
     ImGui::Begin("Scene tree");
@@ -27,10 +28,13 @@ void engine::scene::_inspector()
 #endif
 
 
-void engine::scene::_loop(float deltaTime, bool paused)
-{
 #ifdef NDEBUG
+void engine::scene::_loop(float deltaTime, bool paused) {
+    if (currentScene == nullptr) return;
+
     if (!paused)
+#else
+void engine::scene::_loop(float deltaTime) {
 #endif
     {
         if (currentScene->update) currentScene->update(deltaTime);

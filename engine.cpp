@@ -303,7 +303,7 @@ void engine::start()
         gameLoop(std::chrono::duration<float>(currentTime - lastTime).count());
         lastTime = currentTime;
 #ifdef NDEBUG
-        guiLoop();      // TODO: add null check for the currentScene variable so it doesn't cause a segfault
+        guiLoop();
 #endif
         SDL_GL_SwapWindow(window);
         controls::clearFrameStates();   // if not action states start bleeding into each other
