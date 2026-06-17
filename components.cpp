@@ -176,43 +176,6 @@ void engine::component::Sprite::inspector(uint32_t id) noexcept
 }
 #endif
 
-// I want to make the sprite an immovable object to enforce pass by pointers 
-// but I'm not sure if that'll be good for performance. It'll also just enforce
-// unique_ptr storage, which I just learned would have no performance cost.
-//
-// TODO: Update the game to use a unique_ptr setup and delete the 
-// copy and move constructors.
-engine::component::Sprite::Sprite(Sprite &&_other)
-{
-    size            = std::move(_other.size);
-    current_texture = _other.current_texture;
-    transform       = _other.transform;
-    VBO             = _other.VBO;
-    EBO             = _other.EBO;
-    VAO             = _other.VAO;
-    _other.VBO      = 0;
-    _other.VAO      = 0;
-    _other.EBO      = 0;
-    indexCount      = _other.indexCount;
-    textures        = std::move(_other.textures);
-}
-
-engine::component::Sprite &engine::component::Sprite::operator=(Sprite &&_other)
-{
-    size            = std::move(_other.size);
-    current_texture = _other.current_texture;
-    transform       = _other.transform;
-    VBO             = _other.VBO;
-    EBO             = _other.EBO;
-    VAO             = _other.VAO;
-    _other.VBO      = 0;
-    _other.VAO      = 0;
-    _other.EBO      = 0;
-    indexCount      = _other.indexCount;
-    textures        = std::move(_other.textures);
-    return *this;
-}
-
 engine::component::Sprite::~Sprite()
 {
     if (VBO != 0)

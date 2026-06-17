@@ -21,7 +21,7 @@ engine::Object::Object(const char *name) {
 void engine::object::_draw(Object *obj) noexcept
 {
     auto model = obj->transform.model();
-    for (auto &_comp : obj->components)
+    for (auto &_comp : obj->_components)
         _comp->draw(model);
 }
 
@@ -34,7 +34,7 @@ void engine::object::_inspector(Object *obj) noexcept
     ImGui::SeparatorText(obj->name.c_str());
     obj->transform.inspector();
 
-    for (auto &_comp : obj->components)
+    for (auto &_comp : obj->_components)
         _comp->inspector(++i);
 
     ImGui::End();

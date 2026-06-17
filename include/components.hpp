@@ -38,11 +38,15 @@ namespace engine
         // Interface for components
         struct IComponent
         {
+            virtual ~IComponent(){}
             virtual void draw(const glm::mat4&) noexcept {};
 #ifdef NDEBUG
             virtual void inspector(uint32_t) noexcept = 0;
 #endif
         };
+
+        template<typename T>
+        concept TComponent = std::is_base_of_v<IComponent, T>;
 
         // Sprite component. Allows you to display sprites on the screen
         struct Sprite : public IComponent
@@ -52,10 +56,10 @@ namespace engine
             uint32_t    current_texture = 0;
             void draw(const glm::mat4 &) noexcept override;
 
-            Sprite(const Sprite &) = delete;
+            Sprite(const Sprite &)           = delete;
             Sprite operator=(const Sprite &) = delete;
-            Sprite(Sprite &&);
-            Sprite &operator=(Sprite &&);
+            Sprite(Sprite &&)                = delete;
+            Sprite &operator=(Sprite &&)     = delete;
             Sprite(int w, int h, std::vector<Texture *>);
             ~Sprite();
 
@@ -98,7 +102,6 @@ namespace engine
                 virtual void inspector() noexcept = 0;
 #endif
             };
-
 
             // Box collision shape
             struct Box : public ICollisionShape
@@ -145,8 +148,10 @@ namespace engine
             bool hidden = false;
             float gravity = 9.8;
 
+            // Add a new collision shape to the physics component
             template<TCollisionShape Shape, typename... Args>
-            Shape &newComponent(Args&&... args) {
+            Shape &newCollisionShape(Args&&... args)
+            {
                 auto _obj = std::make_unique<Shape>(args...);
                 auto &ref = *_obj.get();
                 auto &obj = collisionShapes.emplace_back(std::move(_obj));
@@ -163,3 +168,10 @@ namespace engine
     }
 
 }
+// I want to eventually separate the draw and inspector methods away from their components
+// into a sort-of dedicated system. So it'll be closer to an entity component system.
+// Not sure if I should do that or not, because it's essentially the same thing as what's here.
+// I don't know really, so:
+//
+// TODO: Find out if it's worth it to move the draw and inspector methods to dedicated system 
+// and implement that if it is.
