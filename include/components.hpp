@@ -118,6 +118,11 @@ namespace engine
                 // This is required even when it's not needed because it can cause
                 // runtime overflow errors. I still don't understand how this was an 
                 // issue, but it took me days to figure out.
+                //
+                // Note from the future: Tuhe issue is from the game space code.
+                // NDEBUG isn't applied there so the difference in size of the struct
+                // between the two code is different enough to cause some data 
+                // to bleed from other variables.
             private:
                 uint32_t VBO = 0, VAO = 0, EBO = 0, indexCount = 0;
                 uint32_t id;
