@@ -13,6 +13,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #ifdef NDEBUG
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_opengl3.h>
@@ -32,8 +36,6 @@ static SDL_Window*          window = nullptr;
 static SDL_GLContext        ctx = nullptr;
 static engine::vec2<int>    viewport;
 
-// TODO: Major bug fix required. All I'm seeing is a black image
-// on the screen.
 static struct
 {
     uint32_t VBO        = 0;
@@ -43,12 +45,7 @@ static struct
 } _quad;
 
 uint32_t engine::indexCount() { return _quad.indexCount; }
-void engine::bindQuad()
-{
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _quad.EBO);
-    // glBindBuffer(GL_ARRAY_BUFFER, _quad.VBO);
-    glBindVertexArray(_quad.VAO);
-}
+void     engine::bindQuad()   { glBindVertexArray(_quad.VAO); }
 
 #ifdef NDEBUG
 static engine::vec2<int>    actual {STARTING_WIDTH,STARTING_HEIGHT};
@@ -125,11 +122,17 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height)
 #if __APPLE__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,           SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 #endif
+#ifdef __EMSCRIPTEN__
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,    SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION,   3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION,   0);
+#else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,    SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION,   3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION,   3);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS,      1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES,      1);
+#endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,            1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,              24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE,            8);
@@ -146,7 +149,7 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height)
         std::println(stderr, "Error :: Failed to initialize SDl window: {}", SDL_GetError());
         SDL_Quit();
         exit(EXIT_FAILURE);
-    }
+}
 
     ctx = SDL_GL_CreateContext(window);
     if (ctx == nullptr)
@@ -170,7 +173,9 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height)
         exit(EXIT_FAILURE);
     }
 
+#ifndef __EMSCRIPTEN__
     glEnable(GL_MULTISAMPLE);
+#endif
 
     float vertices[] = {
         -0.5f, -0.5f, 0.0f, 0.0f,
@@ -347,21 +352,39 @@ static void processInput()
     }
 }
 
+// #define __EMSCRIPTEN__
+static void mainloop()
+{
+    static auto lastTime = std::chrono::steady_clock::now();       // deltaTime calculations
+
+    if (!running) {
+        engine::cleanup();
+#ifdef __EMSCRIPTEN__
+        emscripten_cancel_main_loop();
+#else
+        exit(EXIT_SUCCESS);
+#endif
+    }
+
+    auto currentTime = std::chrono::steady_clock::now();
+    processInput();
+    gameLoop(std::chrono::duration<float>(currentTime - lastTime).count());
+    lastTime = currentTime;
+#ifdef NDEBUG
+    guiLoop();
+#endif
+    SDL_GL_SwapWindow(window);
+    engine::controls::clearFrameStates();   // if not action states start bleeding into each other
+
+}
+
 void engine::start()
 {
-    auto lastTime = std::chrono::steady_clock::now();       // deltaTime calculations
-    while (running)
-    {
-        auto currentTime = std::chrono::steady_clock::now();
-        processInput();
-        gameLoop(std::chrono::duration<float>(currentTime - lastTime).count());
-        lastTime = currentTime;
-#ifdef NDEBUG
-        guiLoop();
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(mainloop, 0, 1);
+#else
+    while (true) { mainloop(); }
 #endif
-        SDL_GL_SwapWindow(window);
-        controls::clearFrameStates();   // if not action states start bleeding into each other
-    }
 }
 
 // return scaling matrix to use for fitting the units to per-pixel
@@ -376,6 +399,7 @@ glm::mat4 engine::aspectRatio()
 void engine::cleanup()
 {
     cleanupQuad();
+    shader::cleanup();
 
 #ifdef NDEBUG
     cleanupTextures();

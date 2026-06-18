@@ -1,6 +1,6 @@
-#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <print>
 #include <textures.hpp>
 
 #define GL_SILENCE_DEPRECATION
@@ -18,7 +18,7 @@ engine::Texture::Texture(const char *path) noexcept
     
     if (data == nullptr)
     {
-        fprintf(stderr, "Failed to load texture: '%s'", path);
+        std::println(stderr, "Failed to load texture: '{}'", path);
         exit(EXIT_FAILURE);
     }
 

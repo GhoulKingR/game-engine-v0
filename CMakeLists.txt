@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 4.0)
 project(gev0)
 
-find_package(glm REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(SDL3 REQUIRED)
+add_subdirectory(lib/SDL EXCLUDE_FROM_ALL)
 
 function(link_imgui TARGET)
     add_library(${TARGET}
@@ -23,7 +22,6 @@ function(link_imgui TARGET)
     target_link_libraries(${TARGET}
         OpenGL::GL
         SDL3::SDL3
-        glm::glm
     )
 endfunction()
 
@@ -38,40 +36,49 @@ add_library(${PROJECT_NAME} STATIC
     shaders/shaders.cpp
 )
 
-if (DEBUG)
-    link_imgui(imgui_lib)
-    target_link_libraries(${PROJECT_NAME}
-        imgui_lib
-        OpenGL::GL
-        SDL3::SDL3
-        glm::glm
-    )
-    target_compile_options(${PROJECT_NAME} PRIVATE
-        -DNDEBUG
-    )
-else()
-    target_link_libraries(${PROJECT_NAME}
-        OpenGL::GL
-        SDL3::SDL3
-        glm::glm
-    )
-endif()
+if (NOT EMSCRIPTEN)
+    if (DEBUG)
+        link_imgui(imgui_lib)
+        target_link_libraries(${PROJECT_NAME}
+            imgui_lib
+            OpenGL::GL
+            SDL3::SDL3
+        )
+        target_compile_options(${PROJECT_NAME} PRIVATE
+            -DNDEBUG
+        )
+    else()
+        target_link_libraries(${PROJECT_NAME}
+            OpenGL::GL
+            SDL3::SDL3
+        )
+    endif()
 
-if (SANITIZER)
-    target_compile_options(${PROJECT_NAME} PRIVATE
-        -g
-        -O0
-        -fsanitize=address,undefined
-        -fno-omit-frame-pointer
-    )
-    target_link_options(${PROJECT_NAME} PRIVATE
-        -fsanitize=address,undefined
-    )
+    if (SANITIZER)
+        target_compile_options(${PROJECT_NAME} PRIVATE
+            -g
+            -O0
+            -fsanitize=address,undefined
+            -fno-omit-frame-pointer
+        )
+        target_link_options(${PROJECT_NAME} PRIVATE
+            -fsanitize=address,undefined
+        )
+    else()
+        target_compile_options(${PROJECT_NAME} PRIVATE
+            -O3
+        )
+    endif()
 else()
+    target_link_libraries(${PROJECT_NAME}
+        OpenGL::GL
+        SDL3::SDL3
+    )
     target_compile_options(${PROJECT_NAME} PRIVATE
         -O3
     )
 endif()
+
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     -Wall

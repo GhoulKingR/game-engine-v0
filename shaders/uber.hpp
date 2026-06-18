@@ -1,8 +1,13 @@
 #pragma once
 
-static constexpr auto uber_vert = R"(
-#version 330 core
+static constexpr auto uber_vert =
+#ifdef __EMSCRIPTEN__
+"#version 300 es\n"
+#else
+"#version 330 core\n"
+#endif
 
+R"(
 layout (location=0) in vec2 aPos;
 layout (location=1) in vec2 aTexUV;
 
@@ -17,13 +22,19 @@ void main() {
 }
 )";
 
-static constexpr auto uber_frag = R"(
-#version 330 core
+static constexpr auto uber_frag = 
+#ifdef __EMSCRIPTEN__
+"#version 300 es\n"
+"precision mediump float;\n"
+#else
+"#version 330 core\n"
+#endif
 
+R"(
 in vec2 UV;
 out vec4 FragColor;
 
-uniform int useColor = 0;
+uniform int useColor;
 uniform vec3 iColor;
 uniform float alpha;
 uniform sampler2D oTexture;
@@ -33,7 +44,7 @@ void main() {
         FragColor = vec4(iColor, alpha);
     } else {
         vec4 color = texture(oTexture, UV);
-        if (color.a == 0) {
+        if (color.a < 0.1f) {
             discard;
         }
         FragColor = color;
