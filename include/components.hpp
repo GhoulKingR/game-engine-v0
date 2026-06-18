@@ -5,11 +5,14 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <unistd.h>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "SDL3/SDL_audio.h"
 #include "common.hpp"
 #include "textures.hpp"
 
@@ -54,10 +57,28 @@ namespace engine
         concept TComponent = std::is_base_of_v<IComponent, T> &&
                             !std::is_same_v<IComponent, T>;
 
+        struct Sound : public IComponent
+        {
+            void addSound(const char *name, const char *src);
+            void play(const char *);
+            void stop(const char *);
+            ~Sound();
+
+        private:
+            struct Data
+            {
+                SDL_AudioSpec       _spec;
+                SDL_AudioStream*    _stream;
+                uint32_t            _length;
+                uint8_t*            _buffer;
+            };
+            std::unordered_map<std::string, Data> _sounds;
+        };
+
         // Sprite component. Allows you to display sprites on the screen
         struct Sprite : public IComponent
         {
-            bool hidden = false;
+            bool        hidden = false;
             Transform   transform;
             uint32_t    current_texture = 0;
             void draw(const glm::mat4 &) noexcept override;
@@ -136,7 +157,7 @@ namespace engine
 
         template<typename T>
         concept TCollisionShape = std::is_base_of_v<collision::ICollisionShape, T> &&
-                                  !std::is_same_v<collision::ICollisionShape, T>;
+                                 !std::is_same_v<collision::ICollisionShape, T>;
 
         // Physics component: Handles both physics related data, and
         // collision detection

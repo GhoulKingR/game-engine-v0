@@ -1,8 +1,13 @@
+#include "SDL3/SDL_audio.h"
+#include "SDL3/SDL_stdinc.h"
 #include <components.hpp>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <objects.hpp>
 
+#include <print>
 #include <utility>
 #include <vector>
 #include <imgui/imgui.h>
@@ -203,6 +208,48 @@ void engine::component::Timer::draw(const glm::mat4 &) noexcept
 }
 // End Timer ----------------------------------------------------------------------------------------
 
+// Start Sound --------------------------------------------------------------------------------------
+// register a sound file to the component
+void engine::component::Sound::addSound(const char *name, const char *src)
+{
+    Data wav;
+    if (SDL_LoadWAV(src, &wav._spec, &wav._buffer, &wav._length) == 0)
+    {
+        std::println(stderr, "Could not open WAV file! SDL_Error: {}", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+    wav._stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &wav._spec, nullptr, nullptr);
+    _sounds[name] = wav;
+}
+
+void engine::component::Sound::play(const char *name)
+{
+    if (_sounds.contains(name))
+    {
+        auto &wav = _sounds[name];
+        SDL_ResumeAudioStreamDevice(wav._stream);
+        if (SDL_GetAudioStreamQueued(wav._stream) < (int)wav._length)
+            SDL_PutAudioStreamData(wav._stream, wav._buffer, wav._length);
+    }
+}
+
+void engine::component::Sound::stop(const char *name)
+{
+    if (_sounds.contains(name))
+    {
+        Data &wav = _sounds[name];
+        SDL_PauseAudioStreamDevice(wav._stream);
+        SDL_ClearAudioStream(wav._stream);
+    }
+}
+
+engine::component::Sound::~Sound()
+{
+    for (auto &wav : _sounds)
+        SDL_free(wav.second._buffer);
+}
+// End Sound --------------------------------------------------------------------------------------
+
 /// Physics collisions
 // Box collider start -----------------------------------------------------------
 static inline std::vector<engine::component::collision::ICollisionShape*> allShapes;
@@ -248,7 +295,6 @@ engine::component::collision::Box::checkCollision() const noexcept
 
     return nullptr;
 }
-
 
 #ifdef NDEBUG
 engine::component::collision::Box::~Box()

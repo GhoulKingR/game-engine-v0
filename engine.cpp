@@ -1,3 +1,4 @@
+#include "SDL3/SDL_init.h"
 #include "common.hpp"
 #include "controls.hpp"
 #include "shaders/shaders.hpp"
@@ -113,7 +114,7 @@ static void cleanupQuad()
 void engine::init(const char *_title, uint32_t _width, uint32_t _height)
 {
     assert(_title != nullptr);
-    if (!SDL_Init(SDL_INIT_VIDEO))
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
     {
         std::println(stderr, "Error :: Failed to initialize SDL: {}", SDL_GetError());
         exit(EXIT_FAILURE);
