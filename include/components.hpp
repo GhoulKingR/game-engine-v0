@@ -51,7 +51,8 @@ namespace engine
         };
 
         template<typename T>
-        concept TComponent = std::is_base_of_v<IComponent, T>;
+        concept TComponent = std::is_base_of_v<IComponent, T> &&
+                            !std::is_same_v<IComponent, T>;
 
         // Sprite component. Allows you to display sprites on the screen
         struct Sprite : public IComponent
@@ -134,7 +135,8 @@ namespace engine
         }
 
         template<typename T>
-        concept TCollisionShape = std::is_base_of_v<collision::ICollisionShape, T>;
+        concept TCollisionShape = std::is_base_of_v<collision::ICollisionShape, T> &&
+                                  !std::is_same_v<collision::ICollisionShape, T>;
 
         // Physics component: Handles both physics related data, and
         // collision detection
