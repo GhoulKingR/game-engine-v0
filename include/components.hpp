@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "SDL3/SDL_audio.h"
-#include "common.hpp"
+#include "glm/detail/qualifier.hpp"
 #include "glm/fwd.hpp"
 #include "textures.hpp"
 
@@ -27,12 +27,12 @@ namespace engine
         // transform field in them.
         struct Transform
         {
-            vec2<float> scale{1, 1};
-            vec2<float> translate{0, 0};
+            glm::vec2   scale{1, 1};
+            glm::vec2   translate{0, 0};
             float       rotate = 0;
             glm::mat4   model() const noexcept;
             Transform() = default;
-            Transform(vec2<float> scale, vec2<float> translate, float rotate);
+            Transform(glm::vec2 scale, glm::vec2 translate, float rotate);
 
 #ifdef NDEBUG
             void        inspector(const char *prefix = nullptr) noexcept;
@@ -63,10 +63,13 @@ namespace engine
             bool        hidden = false;
             Transform   transform;
             glm::vec4   color;
-            vec2<int>   size{0, 0};
+            glm::vec2   size{0, 0};
 
             ColorRect(glm::vec4);
             void draw(const glm::mat4 &) noexcept override;
+#ifdef NDEBUG
+            void inspector(uint32_t) noexcept override;
+#endif
         };
 
         struct Sound : public IComponent
@@ -100,7 +103,7 @@ namespace engine
             Sprite(int w, int h, std::vector<Texture *>);
 
         private:
-            vec2<int>               size{0, 0};
+            glm::vec<2, int>        size{0, 0};
             static inline uint32_t  objCount = 0;
             std::vector<Texture *>  textures;
 
@@ -147,7 +150,7 @@ namespace engine
                 Box(Object *);
                 Transform        transform;
                 Object*          parent;
-                vec2<float>      size {0.0f, 0.0f};
+                glm::vec2        size {0.0f, 0.0f};
                 ICollisionShape* checkCollision() const noexcept override;
 #ifdef NDEBUG
                 ~Box();
@@ -178,8 +181,9 @@ namespace engine
         // collision detection
         struct Physics : public IComponent
         {
-            bool hidden = false;
-            float gravity = 9.8;
+            bool        hidden = false;
+            float       gravity = 9.8;
+            glm::vec2   velocity{0, 0};
 
             // Add a new collision shape to the physics component
             template<TCollisionShape Shape, typename... Args>

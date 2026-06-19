@@ -1,5 +1,4 @@
 #include "SDL3/SDL_init.h"
-#include "common.hpp"
 #include "controls.hpp"
 #include "shaders/shaders.hpp"
 #include <cassert>
@@ -35,7 +34,7 @@
 
 static SDL_Window*          window = nullptr;
 static SDL_GLContext        ctx = nullptr;
-static engine::vec2<int>    viewport;
+static glm::vec<2, int>     viewport;
 
 static struct
 {
@@ -49,7 +48,7 @@ uint32_t engine::indexCount() { return _quad.indexCount; }
 void     engine::bindQuad()   { glBindVertexArray(_quad.VAO); }
 
 #ifdef NDEBUG
-static engine::vec2<int>    actual {STARTING_WIDTH,STARTING_HEIGHT};
+static glm::vec<2, int>     actual {STARTING_WIDTH,STARTING_HEIGHT};
 
 static struct
 {
@@ -150,7 +149,7 @@ void engine::init(const char *_title, uint32_t _width, uint32_t _height)
         std::println(stderr, "Error :: Failed to initialize SDl window: {}", SDL_GetError());
         SDL_Quit();
         exit(EXIT_FAILURE);
-}
+    }
 
     ctx = SDL_GL_CreateContext(window);
     if (ctx == nullptr)

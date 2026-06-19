@@ -30,11 +30,11 @@
 #include <stb_image.h>
 
 // Start Transform ----------------------------------------------------------------------------------------
-engine::component::Transform::Transform(vec2<float> _scale, vec2<float> _translate, float _rotate)
+engine::component::Transform::Transform(glm::vec2 _scale, glm::vec2 _translate, float _rotate)
 {
-    translate   = _translate;
-    scale       = _scale;
-    rotate      = _rotate;
+    translate   = std::move(_translate);
+    scale       = std::move(_scale);
+    rotate      = std::move(_rotate);
 }
 
 #ifdef NDEBUG
@@ -45,8 +45,8 @@ void engine::component::Transform::inspector(const char *prefix) noexcept
     {
         ImGui::Text("Transform");
         ImGui::Indent();
-        ImGui::DragFloat2("Translate", translate.data());
-        ImGui::DragFloat2("Scale", scale.data(), 0.01f);
+        ImGui::DragFloat2("Translate", glm::value_ptr(translate));
+        ImGui::DragFloat2("Scale", glm::value_ptr(scale), 0.01f);
         ImGui::DragFloat2("Rotate", &rotate, 1.0f);
         ImGui::Unindent();
         ImGui::NewLine();
@@ -56,8 +56,8 @@ void engine::component::Transform::inspector(const char *prefix) noexcept
         if (ImGui::CollapsingHeader(std::format("Transform ({})", prefix).c_str()))
         {
             ImGui::Indent();
-            ImGui::DragFloat2(std::format("Translate ({})", prefix).c_str(), translate.data());
-            ImGui::DragFloat2(std::format("Scale ({})", prefix).c_str(), scale.data(), 0.01f);
+            ImGui::DragFloat2(std::format("Translate ({})", prefix).c_str(), glm::value_ptr(translate));
+            ImGui::DragFloat2(std::format("Scale ({})", prefix).c_str(), glm::value_ptr(scale), 0.01f);
             ImGui::DragFloat2(std::format("Rotate ({})", prefix).c_str(), &rotate, 1.0f);
             ImGui::Unindent();
             ImGui::NewLine();
@@ -274,21 +274,43 @@ void engine::component::ColorRect::draw(const glm::mat4& model) noexcept
 {
     if (!hidden)
     {
-        auto m = glm::identity<glm::mat4>();
-        m = glm::scale(m, {size.x, size.y, 1.0f});
-        m = model * transform.model() * m;
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         auto shdr = shader::default_shader();
         shader::use(shdr);
-        shader::setMat4 (shdr, "aspectRatio",   aspectRatio());
-        shader::setInt  (shdr, "useColor",      1);
-        shader::setVec3 (shdr, "iColor",        {0.3f, 0.1f, 0.5f});
-        shader::setFloat(shdr, "alpha",         1.f);
+        shader::setMat4(shdr, "aspectRatio", aspectRatio());
+        shader::setInt(shdr, "useColor", 1);
+        shader::setVec3(shdr, "iColor", glm::vec3{color});
+        shader::setFloat(shdr, "alpha", color.a);
+
+        auto m = glm::identity<glm::mat4>();
+        m = glm::scale(m, {size.x, size.y, 0.0f});
+        m = model * transform.model() * m;
+        shader::setMat4(shdr, "model", m);
 
         bindQuad();
         glDrawElements(GL_TRIANGLES, indexCount(), GL_UNSIGNED_INT, 0);
     }
 }
+
+#ifdef NDEBUG
+void engine::component::ColorRect::inspector(uint32_t id) noexcept
+{
+    auto s = std::format("Color Rect #{}", id);
+    if (ImGui::CollapsingHeader(s.c_str()))
+    {
+        ImGui::Indent();
+        ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
+        ImGui::DragFloat4("Color", glm::value_ptr(color), 0.01f, 0.f, 1.f);
+        ImGui::DragFloat2("Size", glm::value_ptr(size));
+        transform.inspector(s.c_str());
+
+        ImGui::Unindent();
+        ImGui::NewLine();
+    }
+}
+#endif
 // Color Rect End ------------------------------------------------------------------------------
 
 /// Physics collisions
@@ -370,7 +392,7 @@ void engine::component::collision::Box::inspector() noexcept
     auto prefix = std::format("Box #{}", id);
     if (ImGui::CollapsingHeader(prefix.c_str()))
     {
-        ImGui::DragFloat2(std::format("Size ({})", prefix).c_str(), size.data());
+        ImGui::DragFloat2(std::format("Size ({})", prefix).c_str(), glm::value_ptr(size));
         transform.inspector(prefix.c_str());
     }
 }
