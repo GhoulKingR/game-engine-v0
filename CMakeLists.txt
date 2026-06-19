@@ -17,7 +17,7 @@ function(link_imgui TARGET)
         imgui/imgui_widgets.cpp
     )
     target_include_directories(${TARGET} PRIVATE
-        "${PROJECT_SOURCE_DIR}/_internal_include"
+        "${PROJECT_SOURCE_DIR}/include"
     )
     target_link_libraries(${TARGET}
         OpenGL::GL
