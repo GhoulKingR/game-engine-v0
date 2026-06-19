@@ -14,6 +14,7 @@
 
 #include "SDL3/SDL_audio.h"
 #include "common.hpp"
+#include "glm/fwd.hpp"
 #include "textures.hpp"
 
 namespace engine
@@ -57,9 +58,21 @@ namespace engine
         concept TComponent = std::is_base_of_v<IComponent, T> &&
                             !std::is_same_v<IComponent, T>;
 
+        struct ColorRect : public IComponent
+        {
+            bool        hidden = false;
+            Transform   transform;
+            glm::vec4   color;
+            vec2<int>   size{0, 0};
+
+            ColorRect(glm::vec4);
+            void draw(const glm::mat4 &) noexcept override;
+        };
+
         struct Sound : public IComponent
         {
             void draw(const glm::mat4&) noexcept override;
+            // register a sound file to the component
             void addSound(const char *name, const char *src, bool _looping=false);
             void play(const char *);
             void stop(const char *);

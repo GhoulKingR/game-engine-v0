@@ -1,5 +1,6 @@
 #include "SDL3/SDL_audio.h"
 #include "SDL3/SDL_stdinc.h"
+#include "glm/fwd.hpp"
 #include <components.hpp>
 #include <cstdint>
 #include <cstdio>
@@ -209,7 +210,7 @@ void engine::component::Timer::draw(const glm::mat4 &) noexcept
 // End Timer ----------------------------------------------------------------------------------------
 
 // Start Sound --------------------------------------------------------------------------------------
-// register a sound file to the component
+// TODO (here): Add volume to the inspector panel and to the sound object
 void engine::component::Sound::addSound(const char *name, const char *src, bool looping)
 {
     Data wav;
@@ -236,7 +237,7 @@ void engine::component::Sound::draw(const glm::mat4&) noexcept
 {
     auto iterator = _sounds
         | std::ranges::views::filter([](auto &p){
-            return p.second._looping; 
+            return p.second._looping;
           });
     for (auto &[_, wav] : iterator)
     {
@@ -264,6 +265,31 @@ engine::component::Sound::~Sound()
     }
 }
 // End Sound --------------------------------------------------------------------------------------
+
+// Color Rect Start ------------------------------------------------------------------------------
+engine::component::ColorRect::ColorRect(glm::vec4 color)
+: color(std::move(color)) {}
+
+void engine::component::ColorRect::draw(const glm::mat4& model) noexcept
+{
+    if (!hidden)
+    {
+        auto m = glm::identity<glm::mat4>();
+        m = glm::scale(m, {size.x, size.y, 1.0f});
+        m = model * transform.model() * m;
+
+        auto shdr = shader::default_shader();
+        shader::use(shdr);
+        shader::setMat4 (shdr, "aspectRatio",   aspectRatio());
+        shader::setInt  (shdr, "useColor",      1);
+        shader::setVec3 (shdr, "iColor",        {0.3f, 0.1f, 0.5f});
+        shader::setFloat(shdr, "alpha",         1.f);
+
+        bindQuad();
+        glDrawElements(GL_TRIANGLES, indexCount(), GL_UNSIGNED_INT, 0);
+    }
+}
+// Color Rect End ------------------------------------------------------------------------------
 
 /// Physics collisions
 // Box collider start -----------------------------------------------------------
