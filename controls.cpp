@@ -46,7 +46,19 @@ namespace engine {
             auto actions = inputMap.equal_range(action);
             for (auto i = actions.first; i != actions.second; ++i) {
                 if (i->second.second.just_pressed) {
-                    clearFrameStates();
+                    i->second.second.just_pressed = false;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool isActionJustReleased(const char *action){
+            assert(action != nullptr);
+            auto actions = inputMap.equal_range(action);
+            for (auto i = actions.first; i != actions.second; ++i) {
+                if (i->second.second.just_released) {
+                    i->second.second.just_released = false;
                     return true;
                 }
             }

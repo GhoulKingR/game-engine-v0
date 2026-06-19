@@ -8,6 +8,7 @@ namespace engine {
         void registerAction(std::string action, SDL_Keycode key_code);
         void update(SDL_Event &event);
         bool isActionJustPressed(const char *);
+        bool isActionJustReleased(const char *);
         void clearFrameStates();
     }
 }
