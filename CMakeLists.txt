@@ -86,10 +86,6 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -fno-exceptions
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC
-    "${PROJECT_SOURCE_DIR}/include/"
-)
-
 target_include_directories(${PROJECT_NAME} PRIVATE
-    "${PROJECT_SOURCE_DIR}/_internal_include"
+    "${PROJECT_SOURCE_DIR}/include/"
 )
