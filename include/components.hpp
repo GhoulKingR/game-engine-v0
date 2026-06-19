@@ -59,7 +59,8 @@ namespace engine
 
         struct Sound : public IComponent
         {
-            void addSound(const char *name, const char *src);
+            void draw(const glm::mat4&) noexcept override;
+            void addSound(const char *name, const char *src, bool _looping=false);
             void play(const char *);
             void stop(const char *);
             ~Sound();
@@ -68,8 +69,9 @@ namespace engine
             struct Data
             {
                 SDL_AudioSpec       _spec;
-                SDL_AudioStream*    _stream;
+                bool                _looping;
                 uint32_t            _length;
+                SDL_AudioStream*    _stream;
                 uint8_t*            _buffer;
             };
             std::unordered_map<std::string, Data> _sounds;

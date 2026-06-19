@@ -7,6 +7,7 @@
 #include <functional>
 #include <objects.hpp>
 
+#include <ranges>
 #include <print>
 #include <utility>
 #include <vector>
@@ -17,7 +18,6 @@
 #ifdef NDEBUG
 #include <string>
 #include <format>
-#include <ranges>
 #endif
 
 #include "engine.hpp"
@@ -210,9 +210,10 @@ void engine::component::Timer::draw(const glm::mat4 &) noexcept
 
 // Start Sound --------------------------------------------------------------------------------------
 // register a sound file to the component
-void engine::component::Sound::addSound(const char *name, const char *src)
+void engine::component::Sound::addSound(const char *name, const char *src, bool looping)
 {
     Data wav;
+    wav._looping = looping;
     if (SDL_LoadWAV(src, &wav._spec, &wav._buffer, &wav._length) == 0)
     {
         std::println(stderr, "Could not open WAV file! SDL_Error: {}", SDL_GetError());
@@ -228,6 +229,17 @@ void engine::component::Sound::play(const char *name)
     {
         auto &wav = _sounds[name];
         SDL_ResumeAudioStreamDevice(wav._stream);
+        SDL_PutAudioStreamData(wav._stream, wav._buffer, wav._length);
+    }
+}
+void engine::component::Sound::draw(const glm::mat4&) noexcept
+{
+    auto iterator = _sounds
+        | std::ranges::views::filter([](auto &p){
+            return p.second._looping; 
+          });
+    for (auto &[_, wav] : iterator)
+    {
         if (SDL_GetAudioStreamQueued(wav._stream) < (int)wav._length)
             SDL_PutAudioStreamData(wav._stream, wav._buffer, wav._length);
     }
@@ -245,8 +257,11 @@ void engine::component::Sound::stop(const char *name)
 
 engine::component::Sound::~Sound()
 {
-    for (auto &wav : _sounds)
-        SDL_free(wav.second._buffer);
+    for (auto &[_, wav] : _sounds)
+    {
+        SDL_free(wav._buffer);
+        SDL_free(wav._stream);
+    }
 }
 // End Sound --------------------------------------------------------------------------------------
 
