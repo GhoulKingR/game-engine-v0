@@ -29,6 +29,8 @@ namespace engine
         {
             glm::vec2   scale{1, 1};
             glm::vec2   translate{0, 0};
+
+            // rotate an object or component in degrees
             float       rotate = 0;
             glm::mat4   model() const noexcept;
             Transform() = default;

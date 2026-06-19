@@ -153,6 +153,7 @@ void engine::component::Physics::inspector(uint32_t id) noexcept
             ImGui::Checkbox(std::format("hidden (#{})", id).c_str(), &hidden);
 
         ImGui::DragFloat("gravity", &gravity, 0.01f);
+        ImGui::DragFloat2("velocity", glm::value_ptr(velocity));
 
         // display inspector panels for all collision shapes
         for (auto &c : collisionShapes)
