@@ -5,6 +5,7 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <unistd.h>
@@ -44,6 +45,7 @@ namespace engine
         // Interface for components
         struct IComponent
         {
+            Object *parent = nullptr;
             IComponent()                                = default;
             virtual ~IComponent()                       = default;
             IComponent(const IComponent&)               = delete;
@@ -132,6 +134,13 @@ namespace engine
             // Collision shape interface
             struct ICollisionShape
             {
+                struct CollisionInfo {
+                    engine::component::collision::ICollisionShape* hit;
+                    glm::vec2 normal;
+                    bool isOnFloor() const noexcept { return normal.y >= 0.5f; }
+                };
+
+                Object*                                             parent;
                 ICollisionShape()                                   = default;
                 virtual ~ICollisionShape()                          = default;
                 ICollisionShape(const ICollisionShape&)             = delete;
@@ -139,7 +148,7 @@ namespace engine
                 ICollisionShape(ICollisionShape&&)                  = delete;
                 ICollisionShape &operator=(ICollisionShape&&)       = delete;
 
-                virtual ICollisionShape* checkCollision() const noexcept = 0;
+                virtual std::optional<CollisionInfo> checkCollision() const noexcept = 0;
 #ifdef NDEBUG
                 virtual void draw(const glm::mat4 &) const noexcept {}
                 virtual void inspector() noexcept {}
@@ -149,11 +158,10 @@ namespace engine
             // Box collision shape
             struct Box : public ICollisionShape
             {
-                Box(Object *);
                 Transform        transform;
-                Object*          parent;
                 glm::vec2        size {0.0f, 0.0f};
-                ICollisionShape* checkCollision() const noexcept override;
+                std::optional<CollisionInfo> checkCollision() const noexcept override;
+                Box();
 #ifdef NDEBUG
                 ~Box();
                 void draw(const glm::mat4 &) const noexcept override;
@@ -192,6 +200,7 @@ namespace engine
             Shape &newCollisionShape(Args&&... args)
             {
                 auto _obj = std::make_unique<Shape>(args...);
+                _obj->parent = parent;
                 auto &ref = *_obj.get();
                 auto &obj = collisionShapes.emplace_back(std::move(_obj));
                 return ref;
@@ -207,10 +216,6 @@ namespace engine
     }
 
 }
-// I want to eventually separate the draw and inspector methods away from their components
-// into a sort-of dedicated system. So it'll be closer to an entity component system.
-// Not sure if I should do that or not, because it's essentially the same thing as what's here.
-// I don't know really, so:
-//
-// TODO: Find out if it's worth it to move the draw and inspector methods to dedicated system
-// and implement that if it is.
+
+// TODO: Add camera follow component.
+// TODO: Add volume to sound component

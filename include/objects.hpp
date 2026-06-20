@@ -20,6 +20,7 @@ namespace engine
         Component &newComponent(Args&&... args)
         {
             auto _obj = std::make_unique<Component>(args...);
+            _obj->parent = this;
             auto &ref = *_obj.get();
             auto &obj = _components.emplace_back(std::move(_obj));
             return ref;

@@ -8,6 +8,7 @@
 #include <functional>
 #include <objects.hpp>
 
+#include <optional>
 #include <ranges>
 #include <print>
 #include <utility>
@@ -318,8 +319,7 @@ void engine::component::ColorRect::inspector(uint32_t id) noexcept
 // Box collider start -----------------------------------------------------------
 static inline std::vector<engine::component::collision::ICollisionShape*> allShapes;
 
-engine::component::collision::Box::Box(Object *parent)
-: parent(parent)
+engine::component::collision::Box::Box()
 {
     allShapes.push_back(this);
 #ifdef NDEBUG
@@ -327,7 +327,7 @@ engine::component::collision::Box::Box(Object *parent)
 #endif
 }
 
-engine::component::collision::ICollisionShape*
+std::optional<engine::component::collision::ICollisionShape::CollisionInfo>
 engine::component::collision::Box::checkCollision() const noexcept
 {
     auto _mTranslate = parent->transform.translate + transform.translate;
@@ -348,16 +348,33 @@ engine::component::collision::Box::checkCollision() const noexcept
             float otherTop    = _oTranslate.y + (otherBox->size.y / 2.0f);
             float otherBottom = _oTranslate.y - (otherBox->size.y / 2.0f);
 
-            // Using AABB Separation Axis Theorem to detect collision.
-            bool overlapX = (myLeft <= otherRight) && (myRight >= otherLeft);
-            bool overlapY = (myBottom <= otherTop) && (myTop >= otherBottom);
+            bool overlapX = (myLeft < otherRight) && (myRight > otherLeft);
+            bool overlapY = (myBottom < otherTop) && (myTop > otherBottom);
 
             if (overlapX && overlapY)
-                return otherBox;
+            {
+                // Calculate the overlap depth on both axes
+                float overlapXVar1 = otherRight - myLeft;
+                float overlapXVar2 = myRight - otherLeft;
+                float overlapYVar1 = otherTop - myBottom;
+                float overlapYVar2 = myTop - otherBottom;
+
+                // minimum penetration for both x and y
+                float overlapXDepth = std::min(overlapXVar1, overlapXVar2);
+                float overlapYDepth = std::min(overlapYVar1, overlapYVar2);
+                glm::vec2 collisionNormal{0.0f, 0.0f};
+
+                if (overlapXDepth < overlapYDepth)
+                    collisionNormal.x = (_mTranslate.x < _oTranslate.x) ? -1.0f : 1.0f;
+                else
+                    collisionNormal.y = (_mTranslate.y < _oTranslate.y) ? -1.0f : 1.0f;
+
+                return CollisionInfo{ otherBox, collisionNormal };
+            }
         }
     }
 
-    return nullptr;
+    return std::nullopt;
 }
 
 #ifdef NDEBUG
